@@ -18,6 +18,9 @@ a particular final rank.
   model calls, so provider/model are none and token and cost totals are zero.
   Keep this report factual; do not add a model solely to make the report look
   more substantial.
+- [x] Integrate Person B's JSON timestamp-precedence fix and loader regression
+  tests. Re-running the benchmark showed no public prediction changes; the
+  fix addresses explicit nested timestamps that can affect hidden cases.
 
 ## Next work, in priority order
 
@@ -35,7 +38,7 @@ a particular final rank.
   A trial that removed future checks for already-compliant resources reduced
   public sequence accuracy to 0.0312 and was reverted. Keep the original
   planner until a contract-backed general rule improves the measured result.
-- [ ] Review step recall (currently 0.8201) and precision (currently 0.9509)
+- [ ] Review step recall (currently 0.8031) and precision (currently 0.9509)
   together. Focus on recurring missing verification checks and extra findings;
   do not improve recall by emitting unsupported steps.
 - [x] Correct the scorer so missing prediction cases count as false negatives
@@ -65,10 +68,10 @@ a particular final rank.
 
 ### P1 — Make evaluation repeatable and auditable
 
-- [ ] Provide one documented command that regenerates the public benchmark
+- [x] Provide one documented command that regenerates the public benchmark
   report and custom-case results from a clean environment.
-- [ ] Ensure evaluation reports are regenerated from current scorer output
-  after engine changes; remove stale metrics or run descriptions.
+- [x] Regenerate the evaluation report from current scorer output after the
+  teammate's engine change and remove stale benchmark metrics.
 - [x] Record full-run provenance in the usage report (UTC start/completion,
   duration, command, request count, output path, and SHA-256 checksum) so the
   zero-token figures are tied to the exact `output.csv` produced. Never include

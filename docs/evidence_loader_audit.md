@@ -48,11 +48,12 @@ remaining 29 results with:
 python code/evaluation/score_samples.py --pred .pytest-tmp/supported-samples.csv --show 0
 ```
 
-Results were unchanged from the recorded baseline: status accuracy `0.9062`,
-step precision `0.9509`, step recall `0.8201`, step F1 `0.8807`, and sequence
-accuracy `0.2188` (29 of 32 samples scored). This loader fix did not change
-public-sample predictions; it corrects timestamp precedence for evidence
-records that explicitly carry their own time. No hidden-answer performance
+The evidence-loader fix did not change public-sample predictions. With the
+current scorer, which counts the three withheld cases as false negatives,
+results are status accuracy `0.9062`, step precision `0.9509`, step recall
+`0.8031`, step F1 `0.8708`, and sequence accuracy `0.2188` (29 of 32 samples
+predicted; 3 held for manual review). Earlier recall/F1 values omitted the
+gold steps for missing cases and were optimistic. No hidden-answer performance
 claim is made.
 
 ## Remaining limits
