@@ -597,3 +597,24 @@ repo_root=C:\Users\Asus\Desktop\hallowen
 worktree=main
 parent_agent=none
 
+## [2026-11-04T22:24:26+05:30] Improve prediction accuracy across fields
+
+User Prompt (verbatim, secrets redacted):
+okay i have given the pdf to my teammate now lets continue our next builds make sure we get the highest accuracy in all field
+
+Agent Response Summary:
+Fetched the latest integration code, inspected all remaining public sample mismatches, and added a general exact-resource/system join from identity-link events to independent evidence at or before audit_at. Regenerated the full 518-case output and archive; the public sample metrics remained unchanged because the remaining discrepancies lack evidence-backed links or conflict with policy.
+
+Actions:
+* Fetched all remotes before beginning the accuracy work.
+* Updated evidence matching and state reconstruction to join identity-linked resources to independent file/SQL observations without allowing the link event to override the observation.
+* Re-ran the full dataset, validated output.csv, re-scored the public sample, refreshed evaluation reports, and rebuilt code.zip.
+
+Context:
+tool=Codex desktop
+model=GPT-6
+branch=codex/integration
+repo_root=C:\Users\Asus\Desktop\hallowen
+worktree=main
+parent_agent=none
+

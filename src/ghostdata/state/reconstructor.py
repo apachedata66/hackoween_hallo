@@ -12,7 +12,12 @@ from ghostdata.contract import ResolvedIdentity, ResourceState
 from ghostdata.identity.email import contains_identifier
 from ghostdata.loaders.activity_csv import ActivityEvent
 from ghostdata.loaders.evidence_index import EvidenceMatch
-from ghostdata.loaders.evidence_models import EvidenceRecord, classify_category, classify_kind
+from ghostdata.loaders.evidence_models import (
+    EvidenceRecord,
+    classify_category,
+    classify_kind,
+    normalize_system_id,
+)
 
 _RESOURCE_RE = re.compile(
     r"\b(?:account|analytics|support|search|cache|export|backup|tombstone|audit_record|"
@@ -112,6 +117,7 @@ def _activity_observations(
     identity: ResolvedIdentity,
     audit_at: datetime,
     linked_resource_ids: Iterable[str],
+    independently_observed: set[tuple[str, str]],
 ) -> list[EvidenceMatch]:
     """Promote explicit flow/restore checks and resource links to observations.
 
@@ -137,9 +143,14 @@ def _activity_observations(
                 event.target_system or event.source_system,
             )
         elif event.event_type == "LINK_RESOURCE_IDENTITY" and event.resource_id:
+            system = normalize_system_id(event.target_system or event.source_system)
+            if (system.casefold(), event.resource_id.casefold()) in independently_observed:
+                # Keep the activity event as relationship evidence in the
+                # timeline, but let the linked file/SQL observation establish
+                # the record's actual state.
+                continue
             category = classify_category(event.target_system, event.resource_id, event.details)
             kind = classify_kind(category, event.resource_id)
-            system = event.target_system or event.source_system
             claim = "PRESENT"
         else:
             continue
@@ -292,6 +303,7 @@ def reconstruct_resources(
     audit_at: datetime,
     *,
     activity_events: Iterable[ActivityEvent] = (),
+    linked_resource_ids: Iterable[str] = (),
 ) -> list[ResourceState]:
     """Choose each resource's latest direct observation at or before audit time."""
     activity_events = list(activity_events)
@@ -302,8 +314,25 @@ def reconstruct_resources(
         and (match.record.observed_at is None or match.record.observed_at <= audit_at)
         and match.record.resource_id
     ]
+    independently_observed = {
+        (
+            normalize_system_id(match.record.system_id).casefold(),
+            match.record.resource_id.casefold(),
+        )
+        for match in eligible
+        if match.record.source_type != "activity"
+    }
     linked_ids = [match.record.resource_id for match in eligible]
-    eligible.extend(_activity_observations(activity_events, identity, audit_at, linked_ids))
+    linked_ids.extend(resource_id for resource_id in linked_resource_ids if resource_id)
+    eligible.extend(
+        _activity_observations(
+            activity_events,
+            identity,
+            audit_at,
+            linked_ids,
+            independently_observed,
+        )
+    )
     # Activity observations can refer to identifiers in resource-linked events.
     linked_ids = [match.record.resource_id for match in eligible]
     timelines = replay_activity(activity_events, identity, audit_at, linked_resource_ids=linked_ids)

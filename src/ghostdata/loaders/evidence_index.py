@@ -11,6 +11,7 @@ from typing import Any
 
 from ghostdata.contract import ResolvedIdentity
 from ghostdata.identity.email import contains_identifier
+from ghostdata.loaders.activity_csv import ActivityEvent
 from ghostdata.loaders.documents import DocumentExtraction, extract_document
 from ghostdata.loaders.errors import LoaderError
 from ghostdata.loaders.evidence_csv import EvidenceFile
@@ -314,6 +315,18 @@ class EvidenceIndex:
         ]
         self._phone_search_texts = [re.sub(r"\D", "", value) for value in self._search_texts]
         self.sql_index = sql_index
+        self._records_by_resource: dict[str, list[EvidenceRecord]] = {}
+        for record in self.records:
+            if record.resource_id:
+                self._records_by_resource.setdefault(record.resource_id.casefold(), []).append(
+                    record
+                )
+        self._sql_rows_by_resource: dict[str, list[SqlRow]] = {}
+        if sql_index:
+            for row in sql_index.rows:
+                resource_id = str(row.row.get("resource_id", "")).strip()
+                if resource_id:
+                    self._sql_rows_by_resource.setdefault(resource_id.casefold(), []).append(row)
         self.extractions = list(extractions)
         self.warnings = list(warnings)
         self._coverage = list(coverage)
@@ -489,6 +502,88 @@ class EvidenceIndex:
             )
         )
         return hits
+
+    def find_linked_resource_records(
+        self,
+        identity: ResolvedIdentity,
+        events: Iterable[ActivityEvent],
+        audit_at: datetime,
+    ) -> tuple[list[str], list[EvidenceMatch]]:
+        """Join identity-link events to independent, time-bounded resource evidence.
+
+        A link event can establish which resource belongs to an identity, but it
+        is not itself a reliable observation of that resource's current state.
+        The exact resource ID and target system must also appear in a participant-
+        visible record before that record is added to the case.
+        """
+
+        values = _identity_values(identity)
+        phone_text_cache: dict[str, str] = {}
+        links: dict[tuple[str, str], str] = {}
+        for event in events:
+            if event.event_type != "LINK_RESOURCE_IDENTITY" or event.event_time > audit_at:
+                continue
+            resource_id = event.resource_id.strip()
+            target_system = normalize_system_id(event.target_system).strip()
+            if not resource_id or not target_system:
+                continue
+            details = event.details.casefold()
+            phone_text = phone_text_cache.setdefault(details, re.sub(r"\D", "", details))
+            if not self._record_matches(details, phone_text, values):
+                continue
+            links.setdefault((target_system.casefold(), resource_id.casefold()), resource_id)
+
+        matches_by_key: dict[tuple[str, str, str, str | None, datetime | None], EvidenceMatch] = {}
+        for (target_system, resource_key), resource_id in sorted(links.items()):
+            candidates = list(self._records_by_resource.get(resource_key, ()))
+            for record in candidates:
+                system_id = normalize_system_id(record.system_id).casefold()
+                if system_id != target_system:
+                    continue
+                if record.captured_at is not None and record.captured_at > audit_at:
+                    continue
+                if record.observed_at is not None and record.observed_at > audit_at:
+                    continue
+                key = (
+                    record.evidence_id,
+                    record.system_id,
+                    record.resource_id,
+                    record.replica,
+                    record.effective_time,
+                )
+                matches_by_key[key] = EvidenceMatch(record, ())
+
+            if self.sql_index:
+                for row in self._sql_rows_by_resource.get(resource_key, ()):
+                    system_id = normalize_system_id(row.system_id).casefold()
+                    if system_id != target_system:
+                        continue
+                    record = _record_for_sql(row, self._manifest_times.get(row.file_id))
+                    if record.captured_at is not None and record.captured_at > audit_at:
+                        continue
+                    if record.observed_at is not None and record.observed_at > audit_at:
+                        continue
+                    key = (
+                        record.evidence_id,
+                        record.system_id,
+                        record.resource_id,
+                        record.replica,
+                        record.effective_time,
+                    )
+                    matches_by_key[key] = EvidenceMatch(record, ())
+
+        linked_ids = sorted(set(links.values()), key=str.casefold)
+        hits = list(matches_by_key.values())
+        hits.sort(
+            key=lambda hit: (
+                hit.record.system_id,
+                hit.record.resource_id,
+                hit.record.replica or "",
+                hit.record.effective_time or datetime.min.replace(tzinfo=audit_at.tzinfo),
+                hit.record.evidence_id,
+            )
+        )
+        return linked_ids, hits
 
 
 __all__ = ["EvidenceIndex", "EvidenceMatch"]

@@ -124,11 +124,18 @@ class EvidenceEngine:
         try:
             identity = self.resolve_identity(request, warnings)
             matches = self.evidence_index.find_records(identity, request.audit_at)
+            linked_resource_ids, linked_matches = (
+                self.evidence_index.find_linked_resource_records(
+                    identity, self.activity, request.audit_at
+                )
+            )
+            matches.extend(linked_matches)
             resources = reconstruct_resources(
                 matches,
                 identity,
                 request.audit_at,
                 activity_events=self.activity,
+                linked_resource_ids=linked_resource_ids,
             )
         except Exception as exc:
             # A corrupt or unusual case should not abort a whole 518-case run.

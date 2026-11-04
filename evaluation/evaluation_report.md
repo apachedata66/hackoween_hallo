@@ -112,11 +112,11 @@ Ran 16 hand-built cases; 16 passed.
 
 ## Failures found
 
-The public benchmark scores 29 of 32 cases; three absence-only cases have no evidence-linked resource IDs, so they cannot be scored without guessing. Residual differences include case_03, whose expected analytics resource has no identity linkage in participant-facing evidence; case_07, where activity_4007 links object_19 to the subject but the supplied deletion policy conflicts with the public-gold omission; and case_12, where public gold expects deletion of an analytics profile although deletion_rules.csv requires anonymization. Other differences include expected resource checks not established by available evidence. Hidden full-dataset accuracy is unavailable.
+The public benchmark scores 29 of 32 cases; three absence-only cases have no evidence-linked resource IDs, so they cannot be scored without guessing. Residual differences include case_03, whose expected analytics resource has no identity linkage in participant-facing evidence; case_07, where activity_4007 links object_19 to the subject but the public gold omits that linked attachment; and case_12, where public gold expects deletion of an analytics profile although deletion_rules.csv requires anonymization. Other differences include expected resource checks not established by available evidence. Hidden full-dataset accuracy is unavailable.
 
 ## Improvements made
 
-Updated backup parsing so eligible, unblocked backups are treated as active restore risks; separated identity-link evidence from direct PII exposure; interpreted deleted account lifecycle state without dropping a retained tombstone; and preferred the strongest file-backed citation when duplicate replica observations collapse. Refreshed all 518 predictions and retained conservative handling where participant evidence or sample gold conflicts with policy.
+Updated backup parsing so eligible, unblocked backups are treated as active restore risks; separated identity-link evidence from direct PII exposure; interpreted deleted account lifecycle state without dropping a retained tombstone; preferred the strongest file-backed citation when duplicate replica observations collapse; and joined identity-link events to exact resource/system evidence under audit_at so the relationship event cannot override an independent record state. Refreshed all 518 predictions and retained conservative handling where evidence or public gold conflicts with policy.
 
 ## Run metadata
 
