@@ -73,3 +73,28 @@ future verification steps for resources that are not reconstructed, plus the
 case 12 policy disagreement and case 17 extra supported verification. No
 general evidence-backed rule was found to change those safely. Hidden full-set
 accuracy is unknown.
+
+## Full 518-request run on this branch
+
+Command:
+
+```powershell
+python code/main.py run --input "$env:GHOSTDATA_DATASET\deletion_requests.csv" --out .pytest-tmp/current-full.csv
+```
+
+The engine processed all 518 requests but stopped safely without writing a
+prediction file because nine cases require manual review:
+`case_33`, `case_35`, `case_39`, `case_50`, `case_52`, `case_53`, `case_55`,
+`case_61`, and `case_63`. The participant-facing trace shows why these must not
+be forced to a verdict:
+
+| Cases | Cutoff finding | Safe disposition |
+| --- | --- | --- |
+| `case_33`, `case_35`, `case_39`, `case_50`, `case_52`, `case_53`, `case_55` | Each has an identity-linked activity row, but its matching independent record is from `evidence_01` (captured 2026-09-15 11:59:39Z) or `evidence_02` (captured 2026-09-17 12:00:00Z), after that case's `audit_at`. Embedded record times precede capture in some files, but the evidence item itself was captured after the cutoff. | Exclude the observation under the temporal rule; the activity link alone cannot prove the record state. Keep for manual review. |
+| `case_61`, `case_63` | Identity-linked activity rows `activity_4007` and `activity_4008` name resources, but the evidence index has no independent record candidate for either resource. | Treat the activity as relationship evidence only; do not infer presence or state. Keep for manual review. |
+
+Thus the current code cannot produce a complete current-run `output.csv` for
+all 518 cases. The checked-in `output.csv` is a prior artifact; its structural
+validation is separate from recomputing predictions or proving their
+accuracy. Full-set gold labels are unavailable, so full-set accuracy cannot be
+measured from the supplied files. Do not fill these nine rows with guesses.

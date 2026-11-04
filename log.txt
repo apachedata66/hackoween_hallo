@@ -1040,3 +1040,24 @@ branch=codex/person-b-linkage-audit
 repo_root=C:\Users\WIN10\OneDrive\Desktop\halloween\hackoween_personb_linkage
 worktree=C:\Users\WIN10\OneDrive\Desktop\halloween\hackoween_personb_linkage
 parent_agent=none
+## [2026-11-04T23:07:42Z] Recheck full-data accuracy and rule handling
+
+User Prompt (verbatim, secrets redacted):
+so according to plan we need accuracy over e erything and this matter alott and also the sets of rules they have provided
+
+Agent Response Summary:
+Reaffirmed accuracy and supplied policy as controlling constraints, then ran the current branch across all 518 participant-facing requests. The CLI processed all requests but stopped safely because nine cases lacked cutoff-eligible independent resource evidence, so it wrote no new prediction file. Traced seven cases to matching evidence captured after audit_at and two to link-only activity with no independent record. The existing output.csv passes structural validation, but that does not establish full-set accuracy. Updated the branch audit note with this finding; no speculative prediction rule was added.
+
+Actions:
+* Inspected policy-planner behavior and participant-visible identity-linked activity for missing checks
+* Ran the 518-request CLI audit; it withheld nine cases and did not write output
+* Validated the existing output.csv structure against the official dataset
+* Updated docs/person_b_sequence_linkage_audit.md with full-run temporal findings
+
+Context:
+tool=Codex desktop
+model=GPT-6
+branch=codex/person-b-linkage-audit
+repo_root=C:\Users\WIN10\OneDrive\Desktop\halloween\hackoween_personb_linkage
+worktree=C:\Users\WIN10\OneDrive\Desktop\halloween\hackoween_personb_linkage
+parent_agent=none
