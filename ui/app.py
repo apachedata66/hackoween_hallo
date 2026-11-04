@@ -15,6 +15,7 @@ import sys
 import tempfile
 import threading
 import time
+from datetime import UTC, datetime
 from pathlib import Path
 
 import streamlit as st
@@ -24,6 +25,10 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from ghostdata.contract.csv_io import read_output  # noqa: E402
 from ghostdata.explain.explainer import explain_case  # noqa: E402
+from ghostdata.identity.resolver import resolve_identity  # noqa: E402
+from ghostdata.loaders.errors import LoaderError  # noqa: E402
+from ghostdata.loaders.identity_csv import load_identities, load_identity_audit  # noqa: E402
+from ghostdata.loaders.timeutil import parse_timestamp  # noqa: E402
 from ghostdata.paths import dataset_dir  # noqa: E402
 from ghostdata.validate import validate_file  # noqa: E402
 
@@ -97,6 +102,229 @@ def _read_csv(path: Path) -> list[dict[str, str]]:
 
 def _masked_email(value: str) -> str:
     return "••••••" if value else "Unavailable"
+
+
+def _as_datetime(value: str) -> datetime | None:
+    try:
+        parsed = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+    return parsed.replace(tzinfo=UTC) if parsed.tzinfo is None else parsed
+
+
+def _at_or_before(value: str, cutoff: str) -> bool:
+    timestamp = _as_datetime(value)
+    limit = _as_datetime(cutoff)
+    return timestamp is not None and limit is not None and timestamp <= limit
+
+
+@st.cache_data(show_spinner=False)
+def _case_identity_values(
+    data_path: str, case_id: str, email: str, requested_at: str, audit_at: str
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """Return subject identifiers to locate and mask without exposing them in the UI."""
+    base = Path(data_path)
+    try:
+        cutoff = _as_datetime(audit_at)
+        requested = parse_timestamp(
+            requested_at, field="requested_at", path=str(base / "deletion_requests.csv")
+        )
+        identities = load_identities(base / "user_identities.csv")
+        audit_events = load_identity_audit(base / "user_audit_log.csv")
+        if cutoff is not None:
+            identities = [item for item in identities if item.updated_at.astimezone(UTC) <= cutoff]
+            audit_events = [
+                item for item in audit_events if item.event_time.astimezone(UTC) <= cutoff
+            ]
+        identity = resolve_identity(
+            case_id,
+            email,
+            requested,
+            identities,
+            audit_events,
+        )
+    except (LoaderError, OSError, ValueError):
+        return ((email,) if email else (), ())
+
+    direct = list(identity.emails_current + identity.emails_historical + identity.email_hashes)
+    other = identity.other_identifiers
+    direct.extend(str(other[key]) for key in ("name", "phone") if other.get(key))
+    direct.extend(str(value) for value in other.get("phone_history", []) if value)
+    return tuple(dict.fromkeys(value for value in direct if value)), tuple(identity.user_ids)
+
+
+@st.cache_data(show_spinner=False)
+def _all_direct_identifiers(data_path: str) -> tuple[str, ...]:
+    """Load participant-facing identity values so excerpts can mask decoys too."""
+    base = Path(data_path)
+    values: set[str] = set()
+    for user in load_identities(base / "user_identities.csv"):
+        values.update(
+            value for value in (user.name, user.email, user.phone, user.email_hash) if value
+        )
+    for event in load_identity_audit(base / "user_audit_log.csv"):
+        if event.field_name in {"email", "email_hash", "phone"}:
+            values.update(
+                value.strip() for value in (event.old_value, event.new_value) if value.strip()
+            )
+    return tuple(sorted(values, key=lambda item: (-len(item), item.casefold())))
+
+
+@st.cache_data(show_spinner=False)
+def _evidence_catalog(data_path: str) -> tuple[dict[str, dict[str, str]], ...]:
+    base = Path(data_path)
+    files = {row["file_id"]: row for row in _read_csv(base / "evidence_files.csv")}
+    activities = {row["activity_id"]: row for row in _read_csv(base / "system_activity.csv")}
+    audits = {row["audit_id"]: row for row in _read_csv(base / "user_audit_log.csv")}
+    return files, activities, audits
+
+
+def _redact_excerpt(text: str, direct_identifiers: tuple[str, ...]) -> str:
+    redacted = text
+    for value in direct_identifiers:
+        if len(value) < 3:
+            continue
+        escaped = re.escape(value)
+        if value[0].isalnum():
+            escaped = rf"(?<!\w){escaped}"
+        if value[-1].isalnum():
+            escaped += r"(?!\w)"
+        redacted = re.sub(escaped, "[redacted]", redacted, flags=re.IGNORECASE)
+    redacted = re.sub(
+        r"(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", "[email redacted]", redacted
+    )
+    sensitive_field = re.compile(
+        r"(?i)([\"']?(?:full_name|customer_name|requester_name|owner_name|recipient_name|"
+        r"name|email|phone|email_hash)[\"']?\s*[:=]\s*)"
+        r"([\"'][^\"']*[\"']|[^,\r\n;|}\]]+)"
+    )
+    return sensitive_field.sub(r"\1[redacted]", redacted)
+
+
+def _file_excerpt(
+    path: Path,
+    selectors: tuple[str, ...],
+    direct_identifiers: tuple[str, ...],
+    cutoff: str,
+) -> str:
+    try:
+        if path.stat().st_size > 2_000_000:
+            return "This source is too large for an inline preview."
+        suffix = path.suffix.casefold()
+        if suffix == ".pdf":
+            from pypdf import PdfReader
+
+            reader = PdfReader(str(path), strict=False)
+            text = "\n".join(page.extract_text() or "" for page in reader.pages)
+        elif suffix in {".txt", ".log", ".json", ".sql", ".csv", ".md"}:
+            text = path.read_text(encoding="utf-8-sig", errors="replace")
+            if suffix == ".json":
+                try:
+                    text = json.dumps(json.loads(text), ensure_ascii=False, indent=2)
+                except ValueError:
+                    pass
+        else:
+            return "Inline text preview is unavailable for this file type."
+    except (OSError, ValueError, ImportError):
+        return "The source could not be read for inline preview."
+
+    lines = text.splitlines()
+    terms = tuple(term.casefold() for term in selectors if term and len(term) > 2)
+    hits = [
+        index for index, line in enumerate(lines) if any(term in line.casefold() for term in terms)
+    ]
+    if not hits:
+        return "No matching subject or resource line was found; source content is hidden."
+    limit = _as_datetime(cutoff)
+    timestamp_pattern = re.compile(
+        r"\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}"
+        r"(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?\b"
+    )
+    for hit in hits:
+        excerpt = "\n".join(lines[max(0, hit - 2) : hit + 3])
+        timestamps = timestamp_pattern.findall(excerpt)
+        if limit is None or any(
+            (parsed := _as_datetime(value)) is None or parsed > limit for value in timestamps
+        ):
+            continue
+        return _redact_excerpt(excerpt[:1800], direct_identifiers)
+    return "Matching source lines include timestamps after the audit cutoff and are hidden."
+
+
+def _show_evidence_detail(
+    evidence_id: str,
+    request: dict[str, str],
+    step: dict[str, object],
+    data_path: Path,
+    subject_values: tuple[str, ...],
+    user_ids: tuple[str, ...],
+) -> None:
+    files, activities, audits = _evidence_catalog(str(data_path))
+    cutoff = request.get("audit_at", "")
+    if evidence_id in activities:
+        event = activities[evidence_id]
+        if not _at_or_before(event.get("event_time", ""), cutoff):
+            st.caption("This event is after the audit cutoff and is hidden from the verdict view.")
+            return
+        st.caption("Operational activity · claim, not proof of the resulting data state")
+        st.write("Event time", event.get("event_time", "Unavailable"))
+        st.write("Event", event.get("event_type", "Unavailable"))
+        st.write(
+            "System / resource",
+            f"{event.get('target_system', '')} / {event.get('resource_id', '')}",
+        )
+        st.write("Reported result (claim)", event.get("reported_result", "Unavailable"))
+        details = _redact_excerpt(event.get("details", ""), _all_direct_identifiers(str(data_path)))
+        st.code(details, language="text")
+        return
+
+    if evidence_id in audits:
+        event = audits[evidence_id]
+        if not _at_or_before(event.get("event_time", ""), cutoff):
+            st.caption("This identity event is after the audit cutoff and is hidden.")
+            return
+        st.caption("Identity history · source row supporting an identity link")
+        st.write("Event time", event.get("event_time", "Unavailable"))
+        st.write("Changed field", event.get("field_name", "Unavailable"))
+        st.write("Old value", "[masked]")
+        st.write("New value", "[masked]")
+        return
+
+    entry = files.get(evidence_id)
+    if not entry:
+        st.caption("This reference could not be resolved in the participant-facing evidence index.")
+        return
+    captured_at = entry.get("captured_at", "")
+    if not _at_or_before(captured_at, cutoff):
+        st.caption(
+            "This file was captured after the audit cutoff and is hidden from the verdict view."
+        )
+        return
+    st.caption("Source file · captured evidence; displayed content is redacted")
+    st.write("Captured at", captured_at)
+    st.write("Origin", entry.get("origin", "Unavailable"))
+    st.code(entry.get("file_path", "Unavailable"), language="text")
+    if not st.checkbox(
+        "Show matching redacted excerpt", key=f"preview_{request['case_id']}_{evidence_id}"
+    ):
+        return
+    base = data_path.resolve()
+    path = (base / entry.get("file_path", "")).resolve()
+    try:
+        path.relative_to(base)
+    except ValueError:
+        st.caption("The evidence path is outside the dataset and cannot be opened.")
+        return
+    selectors = subject_values + user_ids + (str(step.get("resource_id", "")),)
+    st.code(
+        _file_excerpt(
+            path,
+            selectors,
+            _all_direct_identifiers(str(data_path)),
+            request.get("audit_at", ""),
+        ),
+        language="text",
+    )
 
 
 def _reader(pipe, sink: queue.Queue[str]) -> None:
@@ -422,6 +650,32 @@ if result:
                     }
                 )
             st.dataframe(display, use_container_width=True, hide_index=True)
+        evidence_ids = sorted({step["evidence_id"] for step in steps if step["evidence_id"]})
+        if evidence_ids:
+            with st.expander(f"Evidence details ({len(evidence_ids)} references)"):
+                selected_evidence = st.selectbox(
+                    "Evidence reference",
+                    evidence_ids,
+                    key=f"evidence_ref_{case_id}",
+                )
+                selected_step = next(
+                    step for step in steps if step["evidence_id"] == selected_evidence
+                )
+                subject_values, user_ids = _case_identity_values(
+                    str(dataset_dir()),
+                    case_id,
+                    str(request.get("email", "")),
+                    str(request.get("requested_at", "")),
+                    str(request.get("audit_at", "")),
+                )
+                _show_evidence_detail(
+                    selected_evidence,
+                    request,
+                    selected_step,
+                    dataset_dir(),
+                    subject_values,
+                    user_ids,
+                )
         with st.expander("Exact output row"):
             st.code(
                 f"{row['case_id']},{row['deletion_status']},{row['steps_json']}", language="csv"

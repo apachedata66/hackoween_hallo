@@ -34,4 +34,4 @@ request CSV ── identity resolver ── evidence loaders ── state recons
 4. The UI exports only after the existing validator accepts the CLI output.
 5. The engine runs locally and does not transmit case data or make external model calls.
 
-The UI currently shows evidence references and case timelines; it does not yet provide source excerpts in an evidence drawer. The UI remains a read-only review and export layer.
+The UI shows an on-demand evidence drawer for cited files, activity claims, and identity-history rows. File excerpts are limited to lines matching the selected subject or resource, mask identifiers from the participant-facing identity files, and remain hidden when the source is after the case cutoff. The UI remains a read-only review and export layer.

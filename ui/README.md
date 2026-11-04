@@ -20,6 +20,7 @@ The dataset path must contain the participant-facing files expected by the CLI. 
 - When the CLI exits successfully, the UI runs the existing output validator. Download stays unavailable unless validation passes.
 - Search cases by ID or email. Email identifiers are masked by default; use the explicit local-only checkbox to reveal them.
 - Review audit cutoff, reported workflow status, request text, and ordered findings, future actions, and verifications. Evidence IDs are shown separately from proposed work.
+- Open the evidence drawer to inspect source metadata, activity claims, and identity-history references. File excerpts load only on request, match the selected subject or resource, and mask participant-facing identity values. Evidence after the audit cutoff stays hidden.
 - Download the exact validated output bytes. No verdict or step is recomputed in the UI.
 
 Request and output files are processed by the local Streamlit process. Keep the server bound to localhost when handling case data.

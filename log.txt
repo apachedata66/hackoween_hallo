@@ -767,3 +767,25 @@ branch=codex/integration
 repo_root=C:\Users\Asus\Desktop\hallowen
 worktree=C:\Users\Asus\Desktop\hallowen
 parent_agent=none
+
+## [2026-11-04T17:53:23Z] Add cutoff-aware evidence drawer to the UI
+
+User Prompt (verbatim, secrets redacted):
+okay continue
+
+Agent Response Summary:
+Fetched origin before continuing and added an on-demand evidence drawer for file, activity, and identity-history citations. It labels activity as a claim, hides post-cutoff sources, uses only identity values available at audit_at for subject matching, constrains source paths to the dataset, and masks direct identifiers in previews. Updated the UI guide and architecture notes to reflect the new behavior.
+
+Actions:
+* Fetched origin/codex/integration before starting the feature.
+* Edited ui/app.py, ui/README.md, and docs/ARCHITECTURE.md.
+* Ran Ruff check and format on ui/app.py.
+* Rebuilt code.zip after adding the evidence drawer.
+
+Context:
+tool=Codex desktop
+model=GPT-6
+branch=codex/integration
+repo_root=C:\Users\Asus\Desktop\hallowen
+worktree=C:\Users\Asus\Desktop\hallowen
+parent_agent=none
