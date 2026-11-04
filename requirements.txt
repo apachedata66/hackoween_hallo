@@ -1,0 +1,6 @@
+# No third-party runtime dependencies for the deterministic core
+# (Python 3.11+ standard library only).
+#
+# Add dependencies here when a later phase needs them, e.g.:
+# streamlit        # UI (task B11)
+# pdfplumber       # PDF text extraction, if required by Person A

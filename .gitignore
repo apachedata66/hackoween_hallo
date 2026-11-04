@@ -1,0 +1,32 @@
+# Challenge data and generated answers stay out of git (playbook J6).
+dataset/
+output.csv
+*.zip
+
+# Secrets — variable names live in .env.example, never real values.
+.env
+
+# Environments and caches.
+.venv/
+venv/
+node_modules/
+__pycache__/
+*.pyc
+.cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Editor / OS noise.
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# The chat transcript is maintained beside the official AGENTS.md and
+# submitted separately; it is never committed here.
+log.txt
+
+# Agent trace staging (submitted as its own archive).
+agent-trace/
+agent-trace.zip
