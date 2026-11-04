@@ -205,7 +205,7 @@ def _run(args: argparse.Namespace) -> int:
             "deletion_status": result.deletion_status.value,
             "steps_json": steps_to_json(result.steps),
         }
-        for result in results
+        for result in sorted(results, key=lambda item: item.case_id)
     ]
     issues = validate_rows(
         rows,
@@ -217,8 +217,16 @@ def _run(args: argparse.Namespace) -> int:
         raise ValueError(f"generated output failed validation ({len(issues)} issue(s)):\n{details}")
     write_output(output, results)
 
+    full_dataset_run = not args.case and not args.samples and args.input is None
+    if full_dataset_run:
+        review_report = Path(__file__).resolve().parents[2] / "evaluation" / "manual_review.md"
+        try:
+            review_report.unlink()
+        except FileNotFoundError:
+            pass
+
     usage_report: Path | None = None
-    if not args.case and not args.samples:
+    if full_dataset_run:
         tracker = UsageTracker(request_count=len(results))
         usage_report = tracker.write_usage_report(
             Path(__file__).resolve().parents[2] / "evaluation" / "usage_report.md",

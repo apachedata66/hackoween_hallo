@@ -23,6 +23,26 @@ _RESOURCE = re.compile(
     r"\b(?:account|analytics|support|search|cache|export|backup|tombstone|audit_record|email_delivery|data_flow|connector|marketing|telemetry)_(?=[A-Za-z0-9-]*\d)[A-Za-z0-9-]+\b",
     re.I,
 )
+_TRACE_CONTEXT_FIELDS = frozenset(
+    {
+        "account_id",
+        "correlation_key",
+        "customer_email",
+        "customer_id",
+        "email",
+        "email_hash",
+        "lookup_key",
+        "match_key",
+        "owner_key",
+        "phone",
+        "scan_key",
+        "source",
+        "sources",
+        "subject_key",
+        "subject_ref",
+        "user_id",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -184,12 +204,18 @@ def load_log_text(
             malformed += 1
             continue
         events.append(event)
-    # Fields that are only present on a trace's "started" line (such as the
-    # requested email or connector source) are useful for linking its result.
+    # Keep only identity and source context from other events on the same trace.
+    # Operational result/state fields must remain event-local: for example, a
+    # cache lookup's result="miss" must not override rows="1" on a later read.
     trace_fields: dict[str, dict[str, str]] = {}
     for event in events:
         if event.trace_id:
-            trace_fields.setdefault(event.trace_id, {}).update(event.fields)
+            context = {
+                key: value
+                for key, value in event.fields.items()
+                if key in _TRACE_CONTEXT_FIELDS
+            }
+            trace_fields.setdefault(event.trace_id, {}).update(context)
     events = [
         replace(event, fields={**trace_fields.get(event.trace_id, {}), **event.fields})
         if event.trace_id

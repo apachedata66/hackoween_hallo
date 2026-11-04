@@ -1,27 +1,24 @@
-# Usage Report (token usage and cost)
-
-> Status: placeholder. Must describe the FINAL full-dataset run that produced
-> `output.csv`, with numbers taken from the tracker in `src/ghostdata/llm/`
-> (task B12), never from memory. Required by AGENTS.md 6.8.
+# Usage Report
 
 ## Run
 
-_TBD - run id, code version, dataset fingerprint, start/end time._
+- **command**: python code/main.py run
+- **dataset**: participant-facing dataset/
+- **model_calls**: 0
+- **requests**: 518
 
-## Models
+## Model calls
 
-| Provider | Model | Calls | Input tokens | Output tokens | Cost |
-|---|---|---|---|---|---|
-| _TBD_ | | | | | |
+No model calls were made. The audit core is deterministic (lookup, replay, policy application, sorting), so the final run used **0 input tokens, 0 output tokens, and $0.00 cost**.
 
-## Totals
+## Overall totals
 
-- Model calls: _TBD_
-- Input / output / total tokens: _TBD_
-- Average tokens per request: _TBD_
-- Estimated total cost and per-request cost: _TBD_
+- Model calls: **0**
+- Input tokens: **0**
+- Output tokens: **0**
+- Total tokens: **0**
+- Requests in run: **518**
+- Average tokens per request: **0.00**
+- Estimated total cost: **not available** (no per-call prices were configured for this run)
 
-## Note
-
-If the final run uses no LLM at all, state that explicitly with zero tokens
-and zero cost (an honest zero beats invented numbers).
+Numbers above are rendered from the tracker records of the run that produced `output.csv`, not from memory.
