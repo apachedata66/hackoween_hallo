@@ -30,8 +30,24 @@ Paths resolve in this order: `GHOSTDATA_DATASET` env var → `<repo>/dataset`.
 ## Run
 
 ```powershell
-# Load the deletion rules and validate the official sample output.
-python code/main.py
+# Show CLI commands
+python code/main.py --help
+
+# Audit requests (requires Person A's evidence provider)
+python code/main.py run
+
+# Audit one case, explain results, or run the public sample requests
+python code/main.py run --case case_001 --explain --out output.case.csv
+python code/main.py run --samples --out output.samples.csv
+
+# Validate an existing output file
+python code/main.py validate output.csv --input dataset/deletion_requests.csv
+
+# Build the evaluation report from the sample scorer and hand-built cases
+python code/evaluation/report.py --pred output.samples.csv --failures "..." --improvements "..."
+
+# Package the submission after both required reports exist
+python scripts/make_zip.py
 
 # Validate any output file against the official contract.
 python scripts/validate_output.py output.csv --requests <requests.csv> --dataset <dataset-dir>
@@ -40,8 +56,13 @@ python scripts/validate_output.py output.csv --requests <requests.csv> --dataset
 python -m unittest discover -s tests -v
 ```
 
-The full 518-case audit runs through the same planner once the evidence engine
-(Person A) supplies a `CaseAuditInput` per request. See **Status** below.
+The CLI passes request rows to Person A's evidence provider, then sends each
+`CaseAuditInput` through the shared planner and validates the complete output
+before writing it. That provider is not present yet, so `run` currently stops
+with an actionable message rather than writing guessed predictions. The
+provider interface is `ghostdata.evidence.pipeline.build_case_audit_inputs`;
+it receives requests, the dataset path, worker count, and the `--no-llm` and
+`--resume` flags.
 
 ## Folder map
 
@@ -51,10 +72,12 @@ The full 518-case audit runs through the same planner once the evidence engine
 | `code/ghostdata/policy/` | B | Typed rulebook from `deletion_rules.csv` + per-resource treatment engine |
 | `code/ghostdata/planner/` | B | Request authorization, the four completion conditions, ordered step plan |
 | `code/ghostdata/validate.py` | B | Strict `output.csv` validator with human-readable fixes |
-| `code/main.py` | B | Entry point: loads rules, validates samples, runs the audit |
+| `code/main.py` | B | Python entry point for `run` and `validate` CLI commands |
 | `scripts/validate_output.py` | B | CLI wrapper for the validator |
 | `tests/` | both | Contract and validator tests |
 | `code/evaluation/` | B | Scorer and the required evaluation/usage reports |
+| `docs/USER_GUIDE.md` | B | Setup, CLI, result interpretation, and troubleshooting |
+| `scripts/make_zip.py` | B | Safe code.zip builder with exclusions and secret scan |
 | `docs/DECISIONS.md` | both | Decisions and their evidence (working agreement §6/J2) |
 
 Person A owns the evidence engine (`loaders/`, `identity/`, `state/`, `detectors/`),
@@ -81,9 +104,15 @@ which produces `CaseAuditInput` for the planner.
 | B5/B6 Step generator + sorter | ✅ done — phase → operation → system_id → resource_id, renumbered last |
 | B7 Scorer | ✅ done — status/step/field/sequence accuracy, confusion matrix, CI exit code |
 | B8 Custom evaluation cases | ✅ done — 16 hand-built fixtures, all pass planner + validator |
+| B10 Plain-English explainer | ✅ implemented — deterministic summaries from planner output; omits email addresses |
+| B12 Usage tracker | ✅ implemented — records explicit provider/model/token/cost data; does not invent prices |
 | Evidence engine (Person A) | ⏳ not started — blocks the 518-case run |
-| B9 CLI, B10 explainer, B11 UI | ⏳ next |
-| B12–B15 reports, README, packaging | ⏳ planned |
+| B9 CLI command layer | ✅ implemented; end-to-end audit blocked on evidence-provider integration |
+| B11 UI | ⏳ planned |
+| B13 Evaluation report generator | ✅ implemented; final metrics require a prediction run |
+| B14 README and user guide | 🟡 CLI guide drafted; UI screenshots wait for B11 |
+| B15 Packaging script | ✅ implemented; package creation waits for required evaluation reports |
+| B16 Per-case report export, B17 CI | ⏳ planned |
 
 ## Troubleshooting
 
