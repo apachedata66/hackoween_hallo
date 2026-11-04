@@ -1,0 +1,7 @@
+# Runtime dependencies: none yet - the core is Python 3.11+ standard library
+# (csv, sqlite3, json, pathlib, dataclasses). Keep it that way unless a task
+# forces a dependency; every addition must be pinned before submission.
+#
+# Dev / quality tooling:
+pytest>=8.0,<9
+ruff>=0.6

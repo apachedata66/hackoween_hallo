@@ -1,0 +1,41 @@
+# Ghost Data Still Exists - central settings (playbook A2).
+# Paths are relative to the repository root unless stated otherwise.
+# Feature flags here are the default; CLI flags override them at run time.
+
+paths:
+  dataset_dir: dataset
+  requests_csv: dataset/deletion_requests.csv
+  sample_requests_csv: dataset/sample_deletion_requests.csv
+  sample_output_csv: dataset/sample_output.csv
+  rules_csv: dataset/deletion_rules.csv
+  identities_csv: dataset/user_identities.csv
+  audit_log_csv: dataset/user_audit_log.csv
+  activity_csv: dataset/system_activity.csv
+  evidence_manifest_csv: dataset/evidence_files.csv
+  evidence_dir: dataset/evidence
+  output_csv: output.csv
+  cache_dir: cache
+
+timeouts:
+  loader_seconds: 30
+  llm_seconds: 60
+
+llm:
+  # Deterministic core by default: LLM only for OCR/vision/ambiguous text.
+  enabled: false            # --no-llm forces off; CLI flag overrides this
+  api_key_env: LLM_API_KEY  # variable name only, never a value
+  base_url_env: LLM_BASE_URL
+  model_env: LLM_MODEL
+  cache_by_content_hash: true
+  max_retries: 3
+  budget_usd_cap: 5.0       # hard stop so a runaway loop cannot burn budget
+
+features:
+  ocr_enabled: true
+  vision_fallback_enabled: false
+  parallel_workers: 4
+  resume: false
+
+logging:
+  level: INFO
+  mask_emails_in_logs: true

@@ -1,0 +1,29 @@
+# Dataset stays out of git (playbook §4, AGENTS.md §6.9)
+dataset/
+
+# Secrets - only .env.example is ever committed
+.env
+
+# Environments and caches
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+cache/
+*.egg-info/
+
+# Archives (never commit nested zips)
+*.zip
+*.tar
+*.tar.gz
+*.7z
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
