@@ -79,9 +79,10 @@ which produces `CaseAuditInput` for the planner.
 | B3 Policy engine | ✅ done — 15 rules typed, unknown categories warn instead of guess |
 | B4 Status decision | ✅ done — four conditions as named, unit-testable rules |
 | B5/B6 Step generator + sorter | ✅ done — phase → operation → system_id → resource_id, renumbered last |
+| B7 Scorer | ✅ done — status/step/field/sequence accuracy, confusion matrix, CI exit code |
+| B8 Custom evaluation cases | ✅ done — 16 hand-built fixtures, all pass planner + validator |
 | Evidence engine (Person A) | ⏳ not started — blocks the 518-case run |
-| B7 Scorer, B8 custom cases | ⏳ next |
-| B9 CLI, B10 explainer, B11 UI | ⏳ planned |
+| B9 CLI, B10 explainer, B11 UI | ⏳ next |
 | B12–B15 reports, README, packaging | ⏳ planned |
 
 ## Troubleshooting

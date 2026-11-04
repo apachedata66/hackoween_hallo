@@ -8,6 +8,22 @@ Format: date — decision — evidence — who.
 
 ---
 
+## Observed conventions in the official sample_output.csv (task J5, inferred — never copied)
+
+Read programmatically to infer rules; no sample answer was copied into code.
+
+- 32 samples: 10 COMPLETE, 22 INCOMPLETE, 0 NOT_APPLICABLE.
+- COMPLETE rows contain VERIFICATION steps only, every step citing an evidence id.
+- INCOMPLETE rows: findings cite evidence; remediation and future-verification
+  steps use an empty evidence id (empty count always == steps minus findings).
+- INCOMPLETE rows also verify records that require no remediation (retained
+  audit records, already-absent records) — verification covers the required
+  final state, not only what was just fixed.
+- Reported workflow status frequently disagrees with the gold status
+  (e.g. case_05 reported COMPLETE → gold INCOMPLETE).
+
+---
+
 ## 2026-11-04 — Repository split: code here, dataset in the official checkout
 
 **Decision.** Solution code lives in this repository (`hackoween_hallo`). The
