@@ -31,7 +31,8 @@ hackoween_hallo/
     llm/                    client wrapper, cache, cost tracker      (shared)
     cli.py                  one-command batch runner                 (B)
   code/main.py              official entry point (imports ghostdata)
-  ui/                       Streamlit app - calls src only           (B)
+  src/ghostdata/api/        FastAPI app: JSON endpoints + serves ui/dist (B)
+  ui/                       React (Vite) app - calls the API only      (B)
   evaluation/               scorer, custom cases, required reports   (B + A)
   tests/                    unit + integration + golden tests        (both)
   docs/                     DATASET_NOTES, DECISIONS, USER_GUIDE, ARCHITECTURE
@@ -53,8 +54,10 @@ case row -> identity resolver -> all identifiers (current + historical)
 
 ## Invariants
 
-1. **One code path.** CLI, UI download and scorer all call the same function;
-   the UI can never change a verdict or `output.csv` (playbook 10.4).
+1. **One code path.** CLI, API/UI download and scorer all call the same
+   function; the UI can never change a verdict or `output.csv`
+   (playbook 10.4). The FastAPI layer is read-only: it exposes results, it
+   does not compute them differently.
 2. **Evidence, not claims.** `reported_status` and `reported_result` are never
    used to decide a case - only for the reported-vs-actual diff in the UI.
 3. **Time box.** Only information at or before `audit_at` decides the case.
@@ -62,3 +65,24 @@ case row -> identity resolver -> all identifiers (current + historical)
    warning; chaos tests prove it (A14).
 5. **Deterministic.** Same input -> byte-identical `output.csv`; sorted
    everything, no wall-clock in output, LLM cached by content hash.
+6. **Local-only.** The web interface runs on localhost; evidence and case
+   data never leave the machine, and no telemetry or external assets exist.
+
+## Web interface (React + FastAPI, decision D8)
+
+```text
+browser (React, ui/)
+   |  fetch /api/...            (dev: Vite proxy -> FastAPI)
+   v
+FastAPI (src/ghostdata/api/)
+   |  calls the SAME engine functions as the CLI
+   v
+ghostdata core  ->  CaseResult / CaseAuditInput / explanations
+```
+
+- Endpoints (planned): `GET /api/cases` (list/search), `GET /api/case/{id}`
+  (verdict + explanation + timeline + problems + steps), `GET /api/evidence/{file_id}`
+  (snippet with highlights), `POST /api/run` (bulk run with progress),
+  `GET /api/download/output.csv` (byte-identical to CLI output).
+- FastAPI serves `ui/dist/` as static files so `uvicorn` alone is the
+  one-command run for end users; `npm run dev` is only for development.

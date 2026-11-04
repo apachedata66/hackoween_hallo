@@ -45,20 +45,92 @@ must produce the same bytes with no LLM configured (`--no-llm` fallback,
 playbook section 11). LLM use is restricted to OCR/vision/ambiguous text and
 is always cached and tracked in `src/ghostdata/llm/`.
 
+### D5 - Timestamp policy: everything is aware UTC (2026-11-04, A)
+
+`src/ghostdata/loaders/timeutil.py` is the only place time is parsed:
+ISO-8601, trailing `Z` -> UTC, **naive timestamps treated as UTC**, output
+always an aware UTC datetime. Bad/empty timestamps raise `LoaderError` with a
+plain-language message naming the field - never a traceback. All observed
+dataset timestamps carry `Z`, so the naive rule is a safety net, not a guess.
+
+### D6 - `email_hash` scheme confirmed: SHA-256 (2026-11-04, A)
+
+Verified against the data: SHA-256 of the normalised (lower-cased, stripped)
+email matches `user_identities.email_hash` on 200/200 sampled rows (64-hex
+digest; SHA-1/MD5 do not match). The resolver publishes hash variants for
+**every** known address (current + historical), computed with this scheme, so
+detectors can find a person in evidence that only shows a hash.
+*Resolves the "hash scheme" [CONFIRM].*
+
+### D7 - Identity evidence = the owner's `audit_id` rows (2026-11-04, A)
+
+`ResolvedIdentity.identity_evidence_ids` carries the `audit_id` values of the
+resolved user's identity events (email / email_hash / phone), oldest first -
+these are the participant-visible ids that prove each link. Users with no
+audit rows legitimately have an empty list: the current snapshot row has no
+citable id of its own. `LINK_RESOURCE_IDENTITY` activity ids are kept for the
+resource-linking stage (detectors), not for identity. *[CONFIRM: is an empty
+list acceptable for snapshot-only users, or should we cite something else?]*
+
+### D8 - UI stack: React + FastAPI, local-only (2026-11-04, A; user decision)
+
+Decision recorded per the user's explicit direction: the web interface is a
+**React** front end talking to a **FastAPI** back end - not Streamlit.
+Agreed shape:
+
+- `ui/` holds the React app (Vite scaffold) and `src/ghostdata/api/` holds the
+  FastAPI app; both call the same engine functions the CLI calls - the UI can
+  never change a verdict or `output.csv` (playbook 10.4).
+- **One command** starts everything; FastAPI also serves the built React
+  assets from `ui/dist/` so a non-technical user runs a single process on
+  `localhost` with no external requests, no telemetry, evidence never leaves
+  the machine.
+- During development, Vite's dev server proxies `/api` to FastAPI.
+- Accessibility/UX requirements of §10 still apply: colour is never the only
+  signal, plain-English first, masked emails with reveal toggle, friendly
+  errors (never stack traces), phone-width layout, read-only/simulation-only.
+
+### D9 - Identity ownership timeline (2026-11-04, A)
+
+The resolver rebuilds, per address, who owned it and when (from
+`user_audit_log` releases/acquires + the current snapshot), then picks the
+owner **at `requested_at`**:
+- exactly one owner at that moment -> used silently;
+- address released before `requested_at` but only ever held by one user ->
+  used silently (no warning noise);
+- several candidates / genuine ambiguity -> most recent owner wins **and a
+  plain-language warning is recorded** (feeds the UI warnings centre);
+- unknown address -> empty identity + warning, never an exception.
+An address reused by another user resolves to whichever user held it at the
+request time, so the other person's records are never touched (playbook
+edge case 9 / test case 9).
+
+### D10 - Ordering: plain string ascending for system_id / resource_id (2026-11-04, A)
+
+Evidence check run against `dataset/sample_output.csv`: every (phase,
+operation) group in all 32 golden samples is consistent with **both** plain
+string sort and natural sort (0 violations for each) - no sample group
+contains a pair like `account_9` / `account_10` where the two orders
+disagree, so the samples cannot discriminate (111 distinct resource ids, 88
+id pairs where the two orders would differ, but never within one group).
+Decision: use **plain string ascending**, the literal reading of "ascending
+order" in `problem_statement.md`. Risk is limited and will be re-checked if a
+discriminating case appears in our custom cases.
+
 ## Open questions [CONFIRM]
 
 Carried over from playbook section 16 - answer with evidence, then move them
 to Decisions.
 
-- [ ] Sorting by `system_id` / `resource_id`: plain string order or natural
-      order (account_10 vs account_9)? Test against `sample_output.csv`.
+- [x] ~~Sorting by `system_id` / `resource_id`: plain string or natural order?~~
+      Resolved as D10: samples cannot discriminate; plain string ascending.
 - [ ] How is `NOT_APPLICABLE` triggered by `request_text`? (AGENTS.md 6.5
       says non-deletion requests - access, correction, export, opt-out.)
-- [ ] Timezone handling for naive timestamps in activity/evidence files
-      (normalise to UTC?).
-- [ ] Email hash scheme in `user_identities.csv` (reverse-engineer; verify
-      against `email_hash` column).
+- [x] ~~Timezone handling for naive timestamps.~~ Resolved as D5 (treated as UTC).
+- [x] ~~Email hash scheme.~~ Resolved as D6 (SHA-256 of the normalised email).
 - [ ] Tie-breaking for equal timestamps when replaying `system_activity`.
 - [ ] Which log.txt counts for a two-person, two-machine team?
 - [ ] Exact deadline / upload portal / size limits - not configured in the
       official repo; do not invent one (AGENTS.md 3.3).
+- [ ] Identity evidence for snapshot-only users - is an empty
+      `identity_evidence_ids` acceptable? (D7)

@@ -32,3 +32,43 @@ branch=main
 repo_root=C:\Users\Asus\Desktop\hallowen
 worktree=main
 parent_agent=none
+## [2026-11-04T17:59:26+05:30] Automate mode: build A2 loaders + A3 identity resolver
+
+User Prompt (verbatim, secrets redacted):
+iam putting u on automate mode i will be busy for next t1 hrs so keeep building and improving things and should we make an app or website for this problem what is ur suggestion?
+
+Agent Response Summary:
+Recommended a local web app to keep user convenience as a P0 (answer first, no stack traces, data never leaves the machine) and continued Person A's engine work: implemented the typed dataset loaders (A2) with a single UTC timestamp policy and friendly LoaderError messages, plus the identity resolver (A3) with an ownership-timeline that prevents an address reused by another user from pulling in that person's records. All 28 tests pass, including a dataset smoke test proving all 518 case emails resolve to a user.
+
+Actions:
+* Wrote src/ghostdata/loaders/{errors,timeutil,tabular,requests,identity_csv,activity_csv,policy_csv,evidence_csv}.py
+* Wrote src/ghostdata/identity/{email,resolver}.py (IdentityIndex, ownership timeline)
+* Wrote tests/{test_loaders,test_identity_resolver,test_dataset_smoke}.py - 28 passed
+* Ran python -m ruff check --fix / format - clean
+
+Context:
+tool=opencode
+model=mimo-v2.6-flash-free
+branch=main
+repo_root=C:\Users\Asus\Desktop\hallowen
+worktree=main
+parent_agent=none
+## [2026-11-04T17:59:26+05:30] React + FastAPI chosen for the local web interface
+
+User Prompt (verbatim, secrets redacted):
+w8 i want to specify certain things here first we will use react plus fast api for th elocal web interface
+
+Agent Response Summary:
+Recorded the UI stack decision as D8 (React front end + FastAPI back end, local-only, FastAPI serves the built React assets so one command starts everything) and updated docs/ARCHITECTURE.md with the planned API endpoints and data flow. Also added decisions D5 (UTC timestamp policy), D6 (email_hash confirmed as SHA-256), D7 (identity evidence = audit_ids), D9 (ownership timeline rules) and D10 (plain string sort - samples cannot discriminate).
+
+Actions:
+* Edited docs/DECISIONS.md (D8 replaced the Streamlit suggestion; added D5-D7, D9, D10; closed three [CONFIRM] items)
+* Edited docs/ARCHITECTURE.md (React + FastAPI layout, endpoint plan, local-only invariant)
+
+Context:
+tool=opencode
+model=mimo-v2.6-flash-free
+branch=main
+repo_root=C:\Users\Asus\Desktop\hallowen
+worktree=main
+parent_agent=none
