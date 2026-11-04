@@ -29,8 +29,14 @@ st.set_page_config(page_title="Ghost Data Audit", page_icon="GD", layout="wide")
 st.markdown(
     """
     <style>
-    :root { --ink:#1c1f23; --muted:#5f6368; --paper:#f7f6f2; --brand:#1d3b47; --link:#2b5c8a; }
-    .stApp { background:var(--paper); color:var(--ink); }
+    :root { color-scheme:light; --ink:#1c1f23; --muted:#5f6368; --paper:#f7f6f2; --brand:#1d3b47; --link:#2b5c8a; }
+    [data-testid="stAppViewContainer"] { --text-color:var(--ink); --background-color:var(--paper); --secondary-background-color:#ffffff; --primary-color:var(--brand); }
+    [data-testid="stAppViewContainer"], [data-testid="stMain"] { background:var(--paper); color:var(--ink); }
+    [data-testid="stHeader"] { background:var(--paper); }
+    [data-testid="stMarkdownContainer"], [data-testid="stMarkdownContainer"] p,
+    [data-testid="stRadio"] label, [data-testid="stWidgetLabel"] p,
+    [data-testid="stExpander"] summary { color:var(--ink) !important; }
+    [data-testid="stExpander"] summary { background:#ffffff; }
     [data-testid="stMetric"] { background:white; border:1px solid #dedbd2; padding:14px; border-radius:8px; }
     .stButton button, .stDownloadButton button { background:var(--brand); color:white; border:0; }
     [data-testid="stCaptionContainer"] { color:var(--muted); }
@@ -142,18 +148,26 @@ def show_progress() -> None:
     elif not state.get("finished"):
         state["finished"] = True
         if state["process"].returncode != 0:
-            st.error("Audit failed. No output is available for export.")
-            st.code("\n".join(state["logs"][-24:]), language="text")
+            state["outcome"] = "failed"
+            state["failure_message"] = "Audit stopped for evidence review. No output is available for export."
+            review_report = ROOT / "evaluation" / "manual_review.md"
+            state["review_report"] = (
+                review_report.read_text(encoding="utf-8") if review_report.is_file() else ""
+            )
+            state["failure_log"] = "\n".join(state["logs"][-24:])
         elif not state["output"].is_file():
-            st.error("The CLI finished without creating an output file.")
+            state["outcome"] = "failed"
+            state["failure_message"] = "The CLI finished without creating an output file."
         else:
             issues = validate_file(
                 state["output"], requests_path=state["requests"], dataset_dir=dataset_dir()
             )
             if issues:
-                st.error("The generated file failed validation. Export is disabled.")
-                st.code("\n".join(issue.format() for issue in issues[:20]), language="text")
+                state["outcome"] = "failed"
+                state["failure_message"] = "The generated file failed validation. Export is disabled."
+                state["failure_log"] = "\n".join(issue.format() for issue in issues[:20])
             else:
+                state["outcome"] = "complete"
                 state["output_bytes"] = state["output"].read_bytes()
                 state["rows"] = _read_csv(state["output"])
                 state["results"] = {item.case_id: item for item in read_output(state["output"])}
@@ -161,8 +175,7 @@ def show_progress() -> None:
                     row["case_id"]: row for row in _read_csv(state["requests"])
                 }
                 st.session_state.output = state
-                st.success(f"Audit complete: {len(state['rows'])} rows passed validation.")
-                st.rerun()
+        st.rerun(scope="app")
     if state["warnings"]:
         with st.expander(f"Evidence warnings ({len(state['warnings'])})"):
             st.code("\n".join(state["warnings"]), language="text")
@@ -175,6 +188,17 @@ else:
     show_progress()
 
 result = st.session_state.get("output")
+run_state = st.session_state.get("run")
+if run_state and run_state.get("outcome") == "failed":
+    st.error(run_state["failure_message"])
+    if run_state.get("review_report"):
+        st.caption("Manual review report")
+        st.markdown(run_state["review_report"])
+    if run_state.get("failure_log"):
+        with st.expander("Run details"):
+            st.code(run_state["failure_log"], language="text")
+elif run_state and run_state.get("outcome") == "complete":
+    st.success(f"Audit complete: {len(run_state['rows'])} rows passed validation.")
 if result:
     rows = result["rows"]
     counts = {key: sum(row["deletion_status"] == key for row in rows)
