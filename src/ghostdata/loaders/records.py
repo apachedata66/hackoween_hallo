@@ -40,7 +40,9 @@ def _time(value: Any, *, path: str, field: str) -> datetime | None:
     try:
         return parse_optional_timestamp(str(value), field=field, path=path)
     except LoaderError:
-        return None
+        # A malformed explicit timestamp must not silently fall back to a
+        # parent capture time: doing so can move evidence across an audit cutoff.
+        raise
 
 
 def _record_time(node: Mapping[str, Any], inherited: datetime | None, path: str) -> datetime | None:
@@ -97,7 +99,9 @@ def _walk_records(
         or node.get("table")
         or collection_hint
     )
-    observed = time_hint or _record_time(node, None, file_path)
+    # A record's own observation time is more specific than its enclosing
+    # snapshot time. Use the inherited time only when the record has none.
+    observed = _record_time(node, time_hint, file_path)
     if node.get("resource_id"):
         resource_id = str(node.get("resource_id")).strip()
         record_type = str(
