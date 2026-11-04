@@ -20,6 +20,12 @@ from ghostdata.loaders.identity_csv import (
 )
 from ghostdata.loaders.policy_csv import ACTIONS, DeletionRule, load_rules
 from ghostdata.loaders.requests import REPORTED_STATUSES, DeletionRequest, load_requests
+from ghostdata.loaders.sql_snapshots import (
+    SqlRow,
+    SqlSnapshot,
+    SqlSnapshotIndex,
+    load_snapshot,
+)
 from ghostdata.loaders.tabular import read_csv_rows
 from ghostdata.loaders.timeutil import parse_optional_timestamp, parse_timestamp, to_utc_text
 
@@ -33,6 +39,9 @@ __all__ = [
     "EvidenceFile",
     "IdentityAuditEvent",
     "LoaderError",
+    "SqlRow",
+    "SqlSnapshot",
+    "SqlSnapshotIndex",
     "UserIdentity",
     "load_activity",
     "load_evidence_manifest",
@@ -40,6 +49,7 @@ __all__ = [
     "load_identity_audit",
     "load_requests",
     "load_rules",
+    "load_snapshot",
     "parse_optional_timestamp",
     "parse_timestamp",
     "read_csv_rows",

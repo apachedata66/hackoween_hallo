@@ -99,6 +99,54 @@ case's `audit_at` must not be cited for that case.
 | `evidence/logs/` | 26 | `.log` |
 | `evidence/records/` | 28 | `.json` + 1 `.txt` |
 
+## Evidence deep-dive (A4/A5 profiling)
+
+### `evidence/databases/*.sql` (24 files, loaded by `loaders/sql_snapshots.py`)
+
+- SQLite scripts, often with header comments: `-- Captured at: <ISO>` and
+  `-- Database topology: failover_replica`.
+- Two families:
+  - **Point-in-time replica comparisons** (`*_primary` + `*_failover_replica`
+    / `*_read_replica` / `*_reporting_replica` / `*_replica_ap_south` tables in
+    one file) - the classic drift proof: the same `resource_id` present in a
+    replica but gone from primary.
+  - **Inventory snapshots** (`customer_data_inventory_YYYYMMDD.sql`, 11 dated
+    files) with `snapshot_scope(origin_system, captured_at)` plus one table per
+    system: `customer_profiles`, `customer_search_documents`,
+    `customer_analytics_profiles`, `support_records`, `customer_exports`,
+    `connector_subscriptions`, `backup_restore_entries`,
+    `security_audit_records`.
+- Generic `customer_data_*` tables carry `record_json` (full record as JSON
+  text) - identifier search must match on word boundaries (`user_01` must not
+  match `user_010`).
+- Repro on real data: 24 snapshots / 969 rows / 0 warnings;
+  `leila.haddad@yahoo.com` found only in the **failover** replica
+  (`evidence_54`) while absent from every inventory - live drift example.
+
+### `evidence/logs/*.log` (26 files, parsed by `loaders/logs.py`)
+
+Five formats in the wild (all start with an ISO timestamp):
+
+1. `ts [LEVEL] [service] [trace] event: k="v" k="v"` (application traces)
+2. RFC5424 syslog: `ts <15>1 host app trace - - level=... event="..." ...`
+3. `ts requestId=... level=... function=... message="nested k=\"v\" pairs"`
+   (cloud runtime export - the `message` value re-parses as kv pairs)
+4. `ts LEVEL service=... event=... k=v` (operations streams)
+5. bare `ts LEVEL tenant=... event=... k=v` (support replica)
+
+`LINK_RESOURCE_IDENTITY` events link `resource_id` <-> email <-> `user_id`
+and carry a citable `activity_id`.
+
+### `evidence/records/*.json` (28 files, normalized by `loaders/records.py`)
+
+- Top level object; the payload is either `records[]` directly or nested
+  `snapshots[].records[]` (each snapshot has `captured_at`, `data_store`,
+  `collection`).
+- Record fields seen: `recorded_at`, `system`, `resource_id`, `record_type`,
+  `result`, `subject_reference`; analytics-style records instead carry
+  `user_id`, `email`, `phone`, `email_hash` inline.
+- Malformed JSON must become a warning, never a crash (A14).
+
 ## Known edge cases to plan for (from this profile)
 
 1. One email shared by two cases - never attach another person's records.

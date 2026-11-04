@@ -72,3 +72,24 @@ branch=main
 repo_root=C:\Users\Asus\Desktop\hallowen
 worktree=main
 parent_agent=none
+## [2026-11-04T18:12:13+05:30] A4: SQL snapshot loader + docs (D11)
+
+User Prompt (verbatim, secrets redacted):
+(automate mode - no new user message; continuing Person A backlog)
+
+Agent Response Summary:
+Implemented the SQL snapshot loader (A4): executes all 24 .sql evidence files into in-memory SQLite, tags every row with system_id/replica/file_id/captured_at, and exposes a boundary-aware cross-replica search plus a coverage() listing for the A11 report. Profiling found a fifth replica label (read) not in the contract, recorded as decision D11, and documented the evidence formats in DATASET_NOTES. On real data: 969 rows, 0 warnings, and the Leila Haddad failover-replica drift is already detectable.
+
+Actions:
+* Wrote src/ghostdata/loaders/sql_snapshots.py (SqlSnapshotIndex, load_snapshot, coverage)
+* Wrote tests/test_sql_snapshots.py - 14 new tests; full suite 42 passed; ruff clean
+* Edited docs/DECISIONS.md (D11) and docs/DATASET_NOTES.md (evidence deep-dive)
+* Verified on dataset/: 24 snapshots, 969 rows, 0 warnings
+
+Context:
+tool=opencode
+model=mimo-v2.6-flash-free
+branch=main
+repo_root=C:\Users\Asus\Desktop\hallowen
+worktree=main
+parent_agent=none

@@ -105,6 +105,14 @@ An address reused by another user resolves to whichever user held it at the
 request time, so the other person's records are never touched (playbook
 edge case 9 / test case 9).
 
+### D11 - Replica label `"read"` added to contract values (2026-11-04, A)
+
+`problem_statement.md` lists replica values `primary | failover | regional |
+reporting`, but `dataset/evidence/databases/` contains
+`customer_data_read_replica_*.sql` (5 snapshots). Adding the label `"read"`
+for those tables; omitting them would leave real evidence untagged and
+unsearchable. No existing contract value changes meaning.
+
 ### D10 - Ordering: plain string ascending for system_id / resource_id (2026-11-04, A)
 
 Evidence check run against `dataset/sample_output.csv`: every (phase,
