@@ -16,6 +16,12 @@ __pycache__/
 cache/
 *.egg-info/
 evaluation/manual_review.md
+ui/node_modules/
+ui/.vite/
+.ui-smoke-deps/
+.ui-smoke-server.*
+.api-deps/
+.ui-server*.log
 
 # Archives (never commit nested zips)
 *.zip

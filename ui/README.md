@@ -1,30 +1,28 @@
-# Local audit review UI
+# React review interface
 
-This is a local Streamlit front end for the existing Ghost Data CLI. It never computes or edits a verdict. The CLI and validator remain the source of truth.
+The local interface uses React, TypeScript, and Vite. FastAPI serves the production build and runs the existing CLI as a background process. The browser does not implement identity resolution, policy, or audit decisions.
 
-## Setup and launch
+## Run the built interface
 
-From the repository root, install the optional UI extra and launch on localhost:
+From the repository root, install the optional Python dependencies and build the frontend once:
 
 ```powershell
 python -m pip install -e ".[ui]"
-$env:GHOSTDATA_DATASET = "C:\path\to\official\dataset"
-streamlit run ui/app.py --server.address 127.0.0.1
+Push-Location ui; npm install; npm run build; Pop-Location
+python -m uvicorn ghostdata.api.app:app --app-dir src --host 127.0.0.1 --port 8765
 ```
 
-The dataset path must contain the participant-facing files expected by the CLI. The browser UI offers the full dataset, public sample requests, or an uploaded request CSV.
+Open `http://127.0.0.1:8765`. Configure a dataset outside the app using `GHOSTDATA_DATASET` if the repository does not contain `dataset/`.
 
-## Interaction
+## Develop the frontend
 
-- Start an audit and watch actual CLI progress, elapsed time, warnings, and completion or failure output.
-- When the CLI exits successfully, the UI runs the existing output validator. Download stays unavailable unless validation passes.
-- Search cases by ID or email. Email identifiers are masked by default; use the explicit local-only checkbox to reveal them.
-- Review audit cutoff, reported workflow status, request text, and ordered findings, future actions, and verifications. Evidence IDs are shown separately from proposed work.
-- Open the evidence drawer to inspect source metadata, activity claims, and identity-history references. File excerpts load only on request, match the selected subject or resource, and mask participant-facing identity values. Evidence after the audit cutoff stays hidden.
-- Download the exact validated output bytes. No verdict or step is recomputed in the UI.
+Start FastAPI on `127.0.0.1:8765` in one terminal, then run this in `ui/`:
 
-Request and output files are processed by the local Streamlit process. Keep the server bound to localhost when handling case data.
+```powershell
+npm install
+npm run dev
+```
 
-## Current boundary
+Vite proxies API calls to FastAPI. Open the address printed by Vite. Use `npm run build` to create the static bundle at `ui/dist/`.
 
-The UI uses the existing CLI as a subprocess and reflects its output. It does not add an evidence engine, open source evidence snippets, or reinterpret audit warnings. If a case needs manual review or the CLI fails validation, the UI shows the failure and does not enable export.
+Runs show actual CLI progress. A failed or manual-review-required run cannot be exported. Case identifiers are masked by default. The evidence drawer enforces the case cutoff, masks identifiers in excerpts, and labels activity records as claims.

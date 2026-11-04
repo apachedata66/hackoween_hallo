@@ -2,14 +2,10 @@
 
 ## Run
 
-- **command**: python code/main.py run --out output.csv
+- **command**: python code/main.py run
 - **dataset**: participant-facing dataset/
 - **model_calls**: 0
-- **model_names**: none
-- **model_providers**: none
 - **requests**: 518
-- **runtime_seconds**: 42.3
-- **warnings**: 34
 
 ## Model calls
 

@@ -15,6 +15,7 @@ REQUIRED = (
     ROOT / "README.md",
     ROOT / "evaluation" / "evaluation_report.md",
     ROOT / "evaluation" / "usage_report.md",
+    ROOT / "ui" / "dist" / "index.html",
 )
 EXCLUDED_DIRS = {
     ".git",

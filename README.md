@@ -32,14 +32,14 @@ By default, participant data is read from `dataset/`. To point at a separate dat
 
 ## Local review UI
 
-The Streamlit interface launches the same CLI engine, shows real request-count progress and elapsed time, validates the generated file, and only then enables download. It masks request identifiers by default and removes temporary uploaded files after the run.
+The React interface launches the same CLI engine through a local FastAPI service. It shows real request-count progress and elapsed time, validates the generated file before enabling download, masks request identifiers by default, and keeps evidence on the machine.
 
 ```powershell
 python -m pip install -e ".[ui]"
-streamlit run ui/app.py --server.address 127.0.0.1
+python -m uvicorn ghostdata.api.app:app --app-dir src --host 127.0.0.1 --port 8765
 ```
 
-Keep the server bound to localhost when reviewing case data. See [`ui/README.md`](ui/README.md) for the UI workflow.
+Open `http://127.0.0.1:8765` after building the frontend. For frontend development, run `npm install` and `npm run dev` from `ui/`; in another terminal start FastAPI on port 8765. Keep the service bound to localhost when reviewing case data. See [`ui/README.md`](ui/README.md) for the full workflow.
 
 ## Output contract
 
@@ -62,4 +62,4 @@ Build the submission archive without bundling the dataset, caches, nested archiv
 python scripts/make_zip.py
 ```
 
-The archive includes the runnable engine, UI, evaluation reports, configuration, and setup instructions. The generated `output.csv` is provided separately.
+Build the React assets first with `npm install` and `npm run build` from `ui/`. The archive includes the runnable engine, React source and built assets, evaluation reports, configuration, and setup instructions. The generated `output.csv` is provided separately.

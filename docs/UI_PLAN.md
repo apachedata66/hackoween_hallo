@@ -95,8 +95,8 @@ large shadows, oversized hero panels, or extra accent colors.
 
 - **Request and authorization:** request text, requested time, audit cutoff,
   and whether deletion is authorized, not authorized, or unclear.
-- **Identity timeline:** current and historical identifiers with provenance;
-  mask email and phone values by default.
+- **Identity timeline:** current and historical identifier references with
+  provenance; mask email and phone values by default.
 - **Resource ledger:** one row per system/resource with category, state at the
   cutoff, policy treatment, confidence, and evidence reference.
 - **Evidence drawer:** show the cited file, activity, or audit record with
@@ -129,9 +129,10 @@ flowchart LR
 
 - Add a thin application/service layer around `EvidenceEngine`,
   `plan_case`, `CaseExplanation`, and the existing validator.
-- Use Streamlit as the Python-first UI shell for the initial release; apply the
-  visual tokens above through a small shared stylesheet and reusable layout
-  helpers rather than styling each screen independently.
+- Use React, TypeScript, and Vite for the browser interface, with FastAPI as a
+  local-only service. Apply the visual tokens through shared CSS and reusable
+  components. The production bundle is served by FastAPI without external
+  requests.
 - Keep evidence extraction and planning in Python; the browser only displays
   returned, typed data.
 - Return structured evidence references and excerpts so the UI never parses
@@ -158,16 +159,13 @@ flowchart LR
 
 ## Delivery phases
 
-1. **Interaction prototype:** validate the run dashboard, case list, and case
-   workspace using fictional sample cases; apply the supplied palette and
-   typography; agree on labels and masked-value behavior.
-2. **Read-only case review:** expose the shared application service and build
-   the case list, resource ledger, evidence drawer, and explanation panel.
-3. **Batch runs and review queue:** add progress, warnings, retry/resume, and
-   manual-review handling without allowing unsupported exports.
-4. **Validated export:** add CSV/JSON preview, full-set validation, and
-   downloadable artifacts.
-5. **Hardening:** review accessibility, privacy boundaries, error states,
+1. **Local run flow:** start the same CLI from FastAPI, display real progress,
+   warnings, elapsed time, and safe stop states.
+2. **Read-only case review:** search and filter cases, inspect request context
+   and ordered steps, and open cutoff-aware evidence sources.
+3. **Validated export:** expose the CSV only after the existing validator
+   accepts the complete result set.
+4. **Hardening:** review accessibility, privacy boundaries, error states,
    large-run performance, and parity with CLI output.
 
 ## Acceptance criteria

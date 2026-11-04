@@ -13,7 +13,7 @@ request CSV ── identity resolver ── evidence loaders ── state recons
                                                           v
                                       validator ── CSV output
                                                           ^
-                                      CLI <── Streamlit UI
+                                      CLI <── FastAPI <── React UI
 ```
 
 ## Components
@@ -24,7 +24,8 @@ request CSV ── identity resolver ── evidence loaders ── state recons
 - `src/ghostdata/detectors/`, `policy/`, and `planner/`: remaining records, exposed identifiers, active recreation paths, required treatments, and output steps.
 - `src/ghostdata/validate.py`: output and evidence-reference validation.
 - `src/ghostdata/cli.py`: batch entry point used by both terminal and UI runs.
-- `ui/app.py`: local Streamlit review surface. It invokes the CLI as a subprocess, validates the result, and never recomputes verdicts.
+- `src/ghostdata/api/app.py`: local FastAPI run and case API. It invokes the CLI as a subprocess, validates the result, and never recomputes verdicts.
+- `ui/src/`: React and TypeScript review surface. Vite serves it in development and builds local static assets for FastAPI in production.
 
 ## Guarantees and limits
 
