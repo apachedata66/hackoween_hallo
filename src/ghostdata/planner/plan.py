@@ -121,4 +121,13 @@ def _steps_for(status: DeletionStatus, assessments: list[Assessment]) -> list[St
                     evidence if cite_verification else "",
                 )
             )
-    return drafted
+    # Replica observations may produce several assessments for the same
+    # logical resource. The output contract permits one step per operation
+    # and resource, so collapse duplicates while preserving a usable citation.
+    unique: dict[tuple[str, str, str, str], Step] = {}
+    for step in drafted:
+        key = step.identity()
+        existing = unique.get(key)
+        if existing is None or (not existing.evidence_id and step.evidence_id):
+            unique[key] = step
+    return list(unique.values())

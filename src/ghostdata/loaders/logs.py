@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass, replace
 from datetime import datetime
@@ -76,6 +77,22 @@ def parse_log_line(
     event_time = parse_optional_timestamp(matched.group(1), field="log timestamp", path=file_path)
     body = matched.group(2).strip()
     fields = _pairs(body)
+    if "|" in body:
+        columns = [part.strip() for part in body.split("|")]
+        offset = 1 if columns and not columns[0] else 0
+        if len(columns) >= offset + 5:
+            fields.setdefault("level", columns[offset])
+            fields.setdefault("service", columns[offset + 1])
+            fields.setdefault("trace_id", columns[offset + 2])
+            fields.setdefault("event", columns[offset + 3])
+            fields.update(_pairs(" ".join(columns[offset + 4 :])))
+    if body.startswith("{"):
+        try:
+            structured = json.loads(body)
+        except json.JSONDecodeError:
+            structured = None
+        if isinstance(structured, dict):
+            fields.update({str(key).casefold(): str(value) for key, value in structured.items()})
     system = (
         fields.get("service")
         or fields.get("system")

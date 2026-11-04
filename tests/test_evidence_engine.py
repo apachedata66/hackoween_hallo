@@ -120,6 +120,28 @@ def test_log_trace_fields_are_shared_across_start_and_result_lines() -> None:
     assert parsed.events[1].fields["source"] == "legacy_contact_index"
 
 
+def test_json_structured_log_extracts_system_and_flow_state() -> None:
+    parsed = load_log_text(
+        '2026-04-19T06:53:19Z {"severity":"WARN","logger":"integration_service",'
+        '"service":"integration_service","resource_id":"data_flow_8256",'
+        '"event":"connector_heartbeat","enabled":"true",'
+        '"correlation_key":"subject@example.com"}'
+    )
+    assert parsed.events[0].system_id == "integration_service"
+    assert parsed.events[0].resource_id == "data_flow_8256"
+    assert parsed.events[0].fields["enabled"] == "true"
+
+
+def test_pipe_delimited_log_extracts_service_and_flow_state() -> None:
+    parsed = load_log_text(
+        "2026-02-03T05:54:19Z | WARN | integration_service | tr-1 | "
+        'connector_heartbeat | resource_id="data_flow_9556" enabled="true"'
+    )
+    assert parsed.events[0].system_id == "integration_service"
+    assert parsed.events[0].resource_id == "data_flow_9556"
+    assert parsed.events[0].fields["enabled"] == "true"
+
+
 def test_document_text_cache_and_path_escape_guard(tmp_path) -> None:
     dataset = tmp_path / "dataset"
     evidence = dataset / "evidence" / "documents"
