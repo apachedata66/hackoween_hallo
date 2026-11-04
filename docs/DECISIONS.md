@@ -125,6 +125,22 @@ Decision: use **plain string ascending**, the literal reading of "ascending
 order" in `problem_statement.md`. Risk is limited and will be re-checked if a
 discriminating case appears in our custom cases.
 
+### D12 - Resource evidence carries a bounded timeline (2026-11-04, A)
+
+`ResourceState.timeline` is an additive contract field for the sequence of
+time-bounded observations and activity claims used to reconstruct the resource
+at `audit_at`. Existing fields remain unchanged. The engine excludes records
+captured or observed after the case cutoff; activity results remain explicitly
+marked as claims and cannot by themselves establish a final record state.
+
+### D13 - Local document extraction dependency and OCR fallback (2026-11-04, A)
+
+PDF text extraction uses pinned `pypdf==6.17.0`. Image and scanned-PDF OCR is
+optional and runs through a local Tesseract executable only; no evidence is
+sent to a remote service. If Tesseract is unavailable, the parser emits a
+plain-language warning and preserves the case for manual review instead of
+silently treating unreadable evidence as absent.
+
 ## Open questions [CONFIRM]
 
 Carried over from playbook section 16 - answer with evidence, then move them

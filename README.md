@@ -37,6 +37,43 @@ Run the starter Python entry point with:
 python3 code/main.py
 ```
 
+For Person A's evidence-engine development, inspect one case's reconstructed
+resources and time-bounded evidence with masked identifiers by default:
+
+```bash
+python3 scripts/explain_case.py case_001
+```
+
+Use `--show-identifiers` only when you need raw email or phone values in your
+local terminal. This helper is diagnostic; the shared policy, output, CLI, and
+UI integration still determine final submission behavior.
+
+Install the pinned runtime dependency with:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+Image-only evidence requires local Tesseract OCR; without it, the engine reports
+the file as unreadable for text extraction and flags it for manual review. PDF
+text is read locally with `pypdf`.
+
+For Person A's evidence-engine development, inspect one case's reconstructed
+resources and time-bounded evidence with masked identifiers by default:
+
+```bash
+python3 scripts/explain_case.py case_001
+```
+
+Use `--show-identifiers` only when you need raw email or phone values in your
+local terminal. This helper is diagnostic; the shared policy, output, CLI, and
+UI integration still determine final submission behavior.
+
+Install the pinned runtime dependency with `python -m pip install -r
+requirements.txt`. Image-only evidence requires local Tesseract OCR; without it,
+the engine reports the file as unreadable for text extraction and flags it for
+manual review. PDF text is read locally with `pypdf`.
+
 The blank template at `dataset/output.csv` is provided as a reference. Your final generated file for submission must be the root-level `output.csv`.
 
 

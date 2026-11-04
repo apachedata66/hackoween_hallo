@@ -93,3 +93,114 @@ branch=main
 repo_root=C:\Users\Asus\Desktop\hallowen
 worktree=main
 parent_agent=none
+## [2026-11-04T18:13:21+05:30] Automate mode confirmed for ~1 hour: user convenience + production grade
+
+User Prompt (verbatim, secrets redacted):
+i will be going outside so u can continue ur work fro next ome hourd make sure we achive that user convinence and production grade quality
+
+Agent Response Summary:
+Confirmed continue-unattended for about an hour with user convenience and production-grade quality as the priorities. Plan: finish A5 (tolerant log + JSON record parsers with warnings instead of crashes), then A7 state-at-audit_at reconstruction and the A8-A10 detectors, keeping every batch run crash-free and every error message plain-language.
+
+Actions:
+* Appended this log entry
+* Continuing with src/ghostdata/loaders/logs.py and records.py (A5)
+
+Context:
+tool=opencode
+model=mimo-v2.6-flash-free
+branch=main
+repo_root=C:\Users\Asus\Desktop\hallowen
+worktree=main
+parent_agent=none
+## [2026-11-04T18:16:57+05:30] SESSION START
+
+tool=Codex desktop
+model=GPT-6
+Repo Root: C:\Users\Asus\Desktop\hallowen
+Branch: main
+Worktree: C:\Users\Asus\Desktop\hallowen
+Parent Agent: none
+Language: py
+Time Remaining: not configured
+
+## [2026-11-04T19:16:20+05:30] Continue Person A evidence engine
+
+User Prompt (verbatim, secrets redacted):
+continue
+
+Agent Response Summary:
+Continued Person A's evidence and reconstruction work by fixing resource-ID detection and absence-state handling, adding dataset-level warnings and a masked case inspection command, and pinning the local PDF text-extraction dependency. The evidence engine completed a 518-case audit pass with 1,495 resource observations and zero case-level reconstruction warnings; local image OCR remains unavailable and is reported for manual review. Ruff and all 53 tests pass.
+
+Actions:
+* Added scripts/explain_case.py, evidence parsers/index/reconstructor/detectors, and regression coverage.
+* Updated README.md, docs/DATASET_NOTES.md, docs/DECISIONS.md, pyproject.toml, and requirements.txt.
+* Ran full evidence audit pass, pytest, ruff, case debug command, and git diff --check.
+
+Context:
+tool=Codex desktop
+model=GPT-6
+branch=main
+repo_root=C:\Users\Asus\Desktop\hallowen
+worktree=main
+parent_agent=none
+## [2026-11-04T19:18:37+05:30] Review Person B progress
+
+User Prompt (verbatim, secrets redacted):
+person b has commited some files u can check what is the progress till now what we have to do further
+
+Agent Response Summary:
+Inspected local and origin/main history, Person B's committed files, worktree changes, and the current architecture. Person B has committed the policy/planner/output contract and validation foundation, a sample scorer, and 16 custom evaluation cases, but those commits are not integrated into the local branch. The origin branch also uses a different code layout and removes several root project files, so the two branches need deliberate integration before the full product run.
+
+Actions:
+* Compared local main with origin/main and inspected commits 70817cd, b7736c5, a5bf633, and 216ab36.
+* Reviewed the committed planner, policy engine, validator, and scorer entry points.
+* Checked local project placeholders and working-tree changes; no merge or checkout was performed.
+
+Context:
+tool=Codex desktop
+model=GPT-6
+branch=main
+repo_root=C:\Users\Asus\Desktop\hallowen
+worktree=main
+parent_agent=none
+## [2026-11-04T19:30:00+05:30] Start integration branch and review merge
+
+User Prompt (verbatim, secrets redacted):
+create an integration branches and merge all things before merging things make sure to check the person b branch and lets plan next steps after this
+
+Agent Response Summary:
+Reviewed Person B's contract, planner, policy engine, validator, scorer, and custom cases before merging. Created codex/integration and merged the remote B changes into the index while preserving official project files and restoring Person A's work. The integrated test collection then exposed a package-name collision between code/ghostdata and src/ghostdata; the full merge is deliberately left uncommitted pending a unified package/import strategy.
+
+Actions:
+* Created branch codex/integration.
+* Reviewed origin/main commits 70817cd, b7736c5, a5bf633, and 216ab36.
+* Began a no-commit merge of origin/main and restored stashed Person A changes.
+* Ran pytest and Ruff; integration tests failed collection because B imports resolve to A's src/ghostdata package, and Ruff reports style errors in B files.
+
+Context:
+tool=Codex desktop
+model=GPT-6
+branch=codex/integration
+repo_root=C:\Users\Asus\Desktop\hallowen
+worktree=main
+parent_agent=none
+## [2026-11-04T19:30:00+05:30] Make integration mergeable
+
+User Prompt (verbatim, secrets redacted):
+okay make the required changes for mergeability so we can merge and also make changes in all the branches accordingly
+
+Agent Response Summary:
+Unified Person A and Person B code under src/ghostdata, removed the duplicate code/ghostdata package, updated the entry point, evaluation imports, and tests, and made the shared audit dataclasses accept B's existing fixture defaults. The integrated suite now passes all 63 tests and Ruff passes. The merge is staged on codex/integration and ready to commit, then fast-forward the local main branch; no remote push is planned.
+
+Actions:
+* Moved B's contract serialization, policy, planner, validation, evaluation, and path modules into the canonical src package.
+* Connected code/main.py to EvidenceEngine, plan_case, output serialization, and full-output validation.
+* Ran pytest, Ruff, import smoke checks, and staged/diff-checked integration changes.
+
+Context:
+tool=Codex desktop
+model=GPT-6
+branch=codex/integration
+repo_root=C:\Users\Asus\Desktop\hallowen
+worktree=main
+parent_agent=none

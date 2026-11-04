@@ -34,8 +34,8 @@ class ResolvedIdentity:
     emails_current: list[str]
     emails_historical: list[str]  # from user_audit_log, in order of change
     email_hashes: list[str]  # all hash variants found
-    other_identifiers: dict[str, Any]  # phone, name, etc.
-    identity_evidence_ids: list[str]  # audit_id / file_id supporting each link
+    other_identifiers: dict[str, Any] = field(default_factory=dict)  # phone, name, etc.
+    identity_evidence_ids: list[str] = field(default_factory=list)  # audit ids supporting each link
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -56,7 +56,8 @@ class ResourceState:
     replica: str | None  # primary | regional | reporting | failover | None
     evidence_id: str  # file_id / activity_id / audit_id that proves this state
     notes: str  # human-readable reason (feeds the UI explanation)
-    confidence: float  # 1.0 for hard evidence; lower if inferred from OCR etc.
+    confidence: float = 1.0  # lower when evidence is inferred from OCR etc.
+    timeline: list[dict[str, Any]] = field(default_factory=list)  # time-bounded evidence and claims
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

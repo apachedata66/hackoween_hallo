@@ -10,6 +10,7 @@ One rule set for the whole pipeline (docs/DECISIONS.md):
 from __future__ import annotations
 
 import hashlib
+import re
 
 
 def normalize_email(value: str) -> str:
@@ -42,3 +43,34 @@ def lookup_keys(value: str) -> list[str]:
 def sha256_hex(value: str) -> str:
     """SHA-256 hex digest of the normalised value (the dataset's hash scheme)."""
     return hashlib.sha256(normalize_email(value).encode("utf-8")).hexdigest()
+
+
+def contains_identifier(text: str, identifier: str, kind: str = "other") -> bool:
+    """Match identifiers without accepting a longer adjacent value.
+
+    Sentence punctuation after an identifier is allowed, while IDs such as
+    ``user_010`` do not match ``user_01``.
+    """
+    haystack = (text or "").casefold()
+    needle = (identifier or "").strip().casefold()
+    if not haystack or not needle:
+        return False
+    if kind == "phone":
+        digits = re.sub(r"\D", "", needle)
+        return len(digits) >= 7 and digits in re.sub(r"\D", "", haystack)
+    start = 0
+    while (start := haystack.find(needle, start)) >= 0:
+        end = start + len(needle)
+        prefix = haystack[start - 1] if start else ""
+        suffix = haystack[end : end + 2]
+        if prefix and (prefix.isalnum() or prefix in "_.+-"):
+            start = end
+            continue
+        if suffix[:1] and (suffix[0].isalnum() or suffix[0] in "_+-"):
+            start = end
+            continue
+        if kind == "email" and suffix.startswith(".") and len(suffix) > 1 and suffix[1].isalnum():
+            start = end
+            continue
+        return True
+    return False

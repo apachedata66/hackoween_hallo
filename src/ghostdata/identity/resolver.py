@@ -120,7 +120,7 @@ class IdentityIndex:
                 if owner is not None and owner != event.user_id:
                     # Transfer recorded without an explicit release.
                     warnings.append(
-                        f"Address {email} moved from {owner} to {event.user_id} "
+                        f"The requested address moved from {owner} to {event.user_id} "
                         f"at {event.event_time:%Y-%m-%d %H:%M} UTC; treated as a handover."
                     )
                     close(event.event_time)
@@ -134,14 +134,14 @@ class IdentityIndex:
             else:
                 if owner is not None:
                     warnings.append(
-                        f"Snapshot disagrees with the audit log about who owns {email}; "
-                        "using the current snapshot."
+                        "The identity snapshot disagrees with the audit log "
+                        "about address ownership; using the current snapshot."
                     )
                     close(last_event)
                 elif email_events:
                     warnings.append(
-                        f"Audit log shows {email} was released, but the current snapshot "
-                        f"still lists it for {snapshot_owner}; using the snapshot."
+                        "The audit log shows the requested address was released, but the current "
+                        f"snapshot still lists it for {snapshot_owner}; using the snapshot."
                     )
                 start = last_event if email_events else _MIN
                 intervals.setdefault(snapshot_owner, []).append((start, _MAX))
@@ -177,12 +177,12 @@ class IdentityIndex:
         snapshot_rows, used_plus = self._snapshot_matches(target)
         audit_events, audit_plus = self._audit_matches(target)
         if used_plus or audit_plus:
-            notes.append(f"Matched '{email}' after ignoring its +tag.")
+            notes.append("Matched the request email after ignoring its +tag.")
 
         candidates = {row.user_id for row in snapshot_rows} | {e.user_id for e in audit_events}
         if not candidates:
             notes.append(
-                f"No user record found for '{email}'; this case will be audited "
+                "No user record found for the request email; this case will be audited "
                 "with no linked identifiers."
             )
             return ResolvedIdentity(
@@ -198,7 +198,7 @@ class IdentityIndex:
         snapshot_owner = snapshot_rows[0].user_id if len(snapshot_rows) == 1 else None
         if len(snapshot_rows) > 1:
             notes.append(
-                f"'{email}' is listed for several users "
+                "The request email is listed for several users "
                 f"({', '.join(sorted(r.user_id for r in snapshot_rows))}); ambiguity flagged."
             )
 
@@ -210,7 +210,7 @@ class IdentityIndex:
         elif len(owners_here) > 1:
             owner = snapshot_owner if snapshot_owner in owners_here else sorted(owners_here)[-1]
             notes.append(
-                f"'{email}' was owned by several users at the request time "
+                "The request email was owned by several users at the request time "
                 f"({', '.join(owners_here)}); kept {owner} and flagged the ambiguity."
             )
         else:
@@ -233,7 +233,7 @@ class IdentityIndex:
                 ranked = sorted(candidates, key=lambda u: (last_seen(u), u))
                 owner = ranked[-1]
                 notes.append(
-                    f"Could not confirm who owned '{email}' at the request time; "
+                    "Could not confirm who owned the request email at the request time; "
                     f"used the most recent owner ({owner})."
                 )
 

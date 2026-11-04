@@ -122,6 +122,8 @@ case's `audit_at` must not be cited for that case.
 - Repro on real data: 24 snapshots / 969 rows / 0 warnings;
   `leila.haddad@yahoo.com` found only in the **failover** replica
   (`evidence_54`) while absent from every inventory - live drift example.
+  The audit engine retains file-level capture time when an SQL script has no
+  embedded snapshot header, so the `audit_at` filter still applies.
 
 ### `evidence/logs/*.log` (26 files, parsed by `loaders/logs.py`)
 
@@ -146,6 +148,20 @@ and carry a citable `activity_id`.
   `result`, `subject_reference`; analytics-style records instead carry
   `user_id`, `email`, `phone`, `email_hash` inline.
 - Malformed JSON must become a warning, never a crash (A14).
+
+### Evidence-engine implementation notes (A4-A16, 2026-11-04)
+
+- The reusable evidence index now loads all 94 manifest entries once, links
+  records through current and historical identifiers, and exposes partition
+  coverage and dataset-level parser warnings separately from each case.
+- Captured/observed evidence and global activity are cutoff-filtered per case;
+  activity results remain claims. Resource ids are matched with boundaries so
+  a subject such as `user_01` cannot pull `user_010` data into the case.
+- Tesseract is not installed in this runtime. The 11 image evidence files
+  therefore produce explicit OCR warnings and must be reviewed locally or
+  processed in an environment with Tesseract before submission.
+- `scripts/explain_case.py` provides a masked-by-default case inspection view;
+  it shows resource states, timelines, source ids, and dataset parser warnings.
 
 ## Known edge cases to plan for (from this profile)
 

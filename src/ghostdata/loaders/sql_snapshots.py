@@ -245,6 +245,13 @@ class SqlSnapshotIndex:
             if not str(relative).lower().endswith(".sql"):
                 continue
             path = base / str(relative)
+            try:
+                path.resolve().relative_to(base.resolve())
+            except ValueError:
+                warnings.append(
+                    f"Manifest path for {getattr(entry, 'file_id', '')} escapes dataset/; skipped."
+                )
+                continue
             file_id = str(getattr(entry, "file_id", ""))
             try:
                 snapshots.append(load_snapshot(path, file_id=file_id))

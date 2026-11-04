@@ -1,6 +1,5 @@
-# Runtime dependencies: none yet - the core is Python 3.11+ standard library
-# (csv, sqlite3, json, pathlib, dataclasses). Keep it that way unless a task
-# forces a dependency; every addition must be pinned before submission.
+# Runtime dependencies (pinned for repeatable document extraction):
+pypdf==6.17.0
 #
 # Dev / quality tooling:
 pytest>=8.0,<9
