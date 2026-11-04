@@ -58,6 +58,10 @@ Image-only evidence requires local Tesseract OCR; without it, the engine reports
 the file as unreadable for text extraction and flags it for manual review. PDF
 text is read locally with `pypdf`.
 
+If a case cannot be represented by evidence-backed steps, the batch stops before
+writing `output.csv` and writes a PII-free case list to
+`evaluation/manual_review.md` for investigation.
+
 For Person A's evidence-engine development, inspect one case's reconstructed
 resources and time-bounded evidence with masked identifiers by default:
 
@@ -68,11 +72,6 @@ python3 scripts/explain_case.py case_001
 Use `--show-identifiers` only when you need raw email or phone values in your
 local terminal. This helper is diagnostic; the shared policy, output, CLI, and
 UI integration still determine final submission behavior.
-
-Install the pinned runtime dependency with `python -m pip install -r
-requirements.txt`. Image-only evidence requires local Tesseract OCR; without it,
-the engine reports the file as unreadable for text extraction and flags it for
-manual review. PDF text is read locally with `pypdf`.
 
 The blank template at `dataset/output.csv` is provided as a reference. Your final generated file for submission must be the root-level `output.csv`.
 
@@ -126,14 +125,14 @@ The final file must contain 518 data rows sorted by `case_id` (plus the header r
 Your `code.zip` must include:
 
 ```text
-code/evaluation/evaluation_report.md
-code/evaluation/usage_report.md
+evaluation/evaluation_report.md
+evaluation/usage_report.md
 ```
 
 - `evaluation_report.md` must cover case, row, field, and sequence accuracy, at least three additional evaluation cases created by you, failures found, and improvements made.
 - `usage_report.md` must cover the final full-dataset run, including model providers and names, model calls, input and output tokens, total and average tokens per request, and estimated total and per-request cost. Include per-model and overall totals when using multiple models.
 
-**Important:** Place `evaluation_report.md` and `usage_report.md` inside `code/evaluation/` (matching `code/evaluation/main.py` in this starter layout), write your complete evaluation metrics, custom evaluation test cases, and token/cost breakdowns directly inside those Markdown files, and keep prompts in source code or Markdown files. Automated code evaluation ignores raw data files (`.csv`, `.tsv`, `.json`, `.jsonl`, `.sql`, `.log`), so content stored only in those formats will not be visible to the code judge or AI interviewer.
+Place `evaluation_report.md` and `usage_report.md` in the root `evaluation/` directory as required by `AGENTS.md`; write the metrics, custom cases, and usage figures directly in those Markdown files. Keep prompts in source code or Markdown files.
 
 ---
 
@@ -189,6 +188,6 @@ Before submitting, confirm that:
 - every `steps_json` value is a valid JSON array with consecutive step numbers starting at `1`;
 - findings cite valid evidence IDs, and `COMPLETE` verification steps cite evidence proving the current state;
 - proposed remediation and future verification steps use an empty `evidence_id` (`""`);
-- `code.zip` includes your runnable code, `README.md`, `code/evaluation/evaluation_report.md`, and `code/evaluation/usage_report.md`;
+- `code.zip` includes your runnable code, `README.md`, `evaluation/evaluation_report.md`, and `evaluation/usage_report.md`;
 - `log.txt` follows the `AGENTS.md` turn format and is uploaded to the `chat_transcript` slot; and
 - no API keys, credentials, real personal data, or sensitive configuration values are included.
