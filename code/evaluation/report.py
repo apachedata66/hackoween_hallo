@@ -16,6 +16,14 @@ from ghostdata.contract.csv_io import read_output  # noqa: E402
 from ghostdata.paths import dataset_dir  # noqa: E402
 
 
+def _display_path(path: Path) -> str:
+    """Keep report metadata portable instead of recording temporary absolute paths."""
+    try:
+        return path.resolve().relative_to(ROOT.resolve()).as_posix()
+    except ValueError:
+        return path.name
+
+
 def render_report(predicted: Path, gold: Path, failures: str, improvements: str) -> str:
     metrics = score(read_output(gold), read_output(predicted))
     custom = run_cases()
@@ -67,8 +75,8 @@ def render_report(predicted: Path, gold: Path, failures: str, improvements: str)
             "",
             "## Run metadata",
             "",
-            f"- Prediction file: `{predicted}`",
-            f"- Gold file: `{gold}`",
+            f"- Prediction file: `{_display_path(predicted)}`",
+            f"- Gold file: `{_display_path(gold)}`",
             "- Full-dataset accuracy: not measured here; the challenge does not "
             "provide full-dataset gold labels.",
             "",

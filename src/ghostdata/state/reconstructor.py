@@ -22,11 +22,11 @@ _RESOURCE_RE = re.compile(
 )
 _ABSENT = frozenset(
     {
-        "NOT_FOUND",
+        "NOT FOUND",
         "NOT PRESENT",
         "ABSENT",
         "MISSING",
-        "NO_RECORD",
+        "NO RECORD",
         "404",
         "0 ROWS",
         "MISS",
