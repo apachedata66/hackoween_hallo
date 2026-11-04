@@ -341,3 +341,24 @@ branch=main
 repo_root=C:\Users\Asus\Desktop\hallowen
 worktree=main
 parent_agent=none
+## [2026-11-04T20:19:17+05:30] Reduce false manual-review cases
+
+User Prompt (verbatim, secrets redacted):
+okay done i have added mohitgurav now u can commit all the changes and proceed further developing our software
+
+Agent Response Summary:
+Pushed the existing integration commits to GitHub after the user granted repository access. Continued development by correcting explicit non-deletion intent handling and mapping search/marketing service names to their policy categories. The full 518-request run now safely stops on 12 retained-record gaps, down from 24 review cases; it writes no output.csv. Syntax compilation and diff checks pass.
+
+Actions:
+* Updated request intent classification and evidence category mapping.
+* Ran the full CLI over 518 requests; nine non-deletion cases and three unknown-category cases no longer require review.
+* Ran py_compile and git diff --check; did not run the test suite.
+* Appended this turn to log.txt; committing and pushing these changes to codex/integration.
+
+Context:
+tool=Codex desktop
+model=GPT-6
+branch=codex/integration
+repo_root=C:\Users\Asus\Desktop\hallowen
+worktree=main
+parent_agent=none

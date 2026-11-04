@@ -62,10 +62,16 @@ _CATEGORY_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ),
     ("ANALYTICS_PROFILE", ("analytics_profile", "analytics profile", "analytics_platform")),
     ("PRODUCT_TELEMETRY", ("product_telemetry", "telemetry")),
-    ("SEARCH_INDEX_ENTRY", ("search_index", "search_document", "search index", "index_entry")),
+    (
+        "SEARCH_INDEX_ENTRY",
+        ("search_index", "search_document", "search index", "index_entry", "search_service"),
+    ),
     ("CACHE_ENTRY", ("cache_entry", "cache record", "cache_service")),
     ("USER_EXPORT", ("user_export", "customer_export", "export_service", "export file")),
-    ("MARKETING_PROFILE", ("marketing_profile", "marketing profile")),
+    (
+        "MARKETING_PROFILE",
+        ("marketing_profile", "marketing profile", "marketing_platform", "marketing_service"),
+    ),
     ("EMAIL_DELIVERY_LOG", ("email_delivery", "email delivery", "delivery_log")),
     (
         "SECONDARY_IDENTIFIER",
