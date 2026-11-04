@@ -54,6 +54,12 @@ The reproducible public sample comparison, custom cases, known benchmark limits,
 - [`evaluation/evaluation_report.md`](evaluation/evaluation_report.md)
 - [`evaluation/usage_report.md`](evaluation/usage_report.md)
 
+Regenerate the public sample evaluation report from the current evidence engine and custom cases with:
+
+```powershell
+python code/evaluation/run_public_benchmark.py
+```
+
 The public sample set contains 32 cases. The report documents the current score and evidence gaps; no hidden full dataset labels are available for measuring full set accuracy.
 
 Build the submission archive without bundling the dataset, caches, nested archives, or secrets:

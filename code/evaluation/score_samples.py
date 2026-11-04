@@ -65,8 +65,17 @@ def _field_values(step) -> dict[str, str]:
 
 
 def score_case(gold, pred) -> dict:
-    gold_keys = [step_key(step) for step in gold.steps]
-    pred_keys = [step_key(step) for step in pred.steps]
+    """Compare a gold case with its prediction, counting absent sides as empty.
+
+    Missing predictions must count as false negatives. Extra prediction cases
+    must count as false positives. Treating either as a missing map entry would
+    silently inflate step and field metrics.
+    """
+    case_id = gold.case_id if gold is not None else pred.case_id
+    gold_steps = gold.steps if gold is not None else ()
+    pred_steps = pred.steps if pred is not None else ()
+    gold_keys = [step_key(step) for step in gold_steps]
+    pred_keys = [step_key(step) for step in pred_steps]
     gold_counts = Counter(gold_keys)
     pred_counts = Counter(pred_keys)
     overlap = sum((gold_counts & pred_counts).values())
@@ -76,17 +85,21 @@ def score_case(gold, pred) -> dict:
     for index in range(length):
         if index >= len(gold_keys) or index >= len(pred_keys):
             continue
-        gold_values = _field_values(gold.steps[index])
-        pred_values = _field_values(pred.steps[index])
+        gold_values = _field_values(gold_steps[index])
+        pred_values = _field_values(pred_steps[index])
         for field in SCORING_FIELDS:
             if gold_values[field] == pred_values[field]:
                 field_matches[field] += 1
 
     return {
-        "case_id": gold.case_id,
-        "status_ok": gold.deletion_status == pred.deletion_status,
-        "gold_status": gold.deletion_status.value,
-        "pred_status": pred.deletion_status.value,
+        "case_id": case_id,
+        "status_ok": (
+            gold is not None
+            and pred is not None
+            and gold.deletion_status == pred.deletion_status
+        ),
+        "gold_status": gold.deletion_status.value if gold is not None else "MISSING",
+        "pred_status": pred.deletion_status.value if pred is not None else "MISSING",
         "gold_steps": len(gold_keys),
         "pred_steps": len(pred_keys),
         "overlap": overlap,
@@ -101,19 +114,23 @@ def score_case(gold, pred) -> dict:
 def score(gold_results, pred_results) -> dict:
     gold_by_id = {item.case_id: item for item in gold_results}
     pred_by_id = {item.case_id: item for item in pred_results}
-    shared = sorted(set(gold_by_id) & set(pred_by_id))
     missing = sorted(set(gold_by_id) - set(pred_by_id))
     extra = sorted(set(pred_by_id) - set(gold_by_id))
 
-    cases = [score_case(gold_by_id[case_id], pred_by_id[case_id]) for case_id in shared]
+    comparison_ids = sorted(set(gold_by_id) | set(pred_by_id))
+    cases = [
+        score_case(gold_by_id.get(case_id), pred_by_id.get(case_id))
+        for case_id in comparison_ids
+    ]
 
     total_cases = len(gold_by_id)
-    status_hits = sum(1 for case in cases if case["status_ok"])
-    sequence_hits = sum(1 for case in cases if case["sequence_ok"])
+    gold_cases = [case for case in cases if case["case_id"] in gold_by_id]
+    status_hits = sum(1 for case in gold_cases if case["status_ok"])
+    sequence_hits = sum(1 for case in gold_cases if case["sequence_ok"])
 
     true_positives = sum(case["overlap"] for case in cases)
-    pred_step_total = sum(case["pred_steps"] for case in cases)
-    gold_step_total = sum(case["gold_steps"] for case in cases)
+    pred_step_total = sum(len(item.steps) for item in pred_results)
+    gold_step_total = sum(len(item.steps) for item in gold_results)
     precision = true_positives / pred_step_total if pred_step_total else 0.0
     recall = true_positives / gold_step_total if gold_step_total else 0.0
     f1 = (2 * precision * recall / (precision + recall)) if (precision + recall) else 0.0
@@ -128,11 +145,13 @@ def score(gold_results, pred_results) -> dict:
         gold_status: {pred_status: 0 for pred_status in STATUSES} for gold_status in STATUSES
     }
     for case in cases:
+        if case["case_id"] not in gold_by_id or case["case_id"] not in pred_by_id:
+            continue
         confusion[case["gold_status"]][case["pred_status"]] += 1
 
     return {
         "case_count": total_cases,
-        "scored_cases": len(shared),
+        "scored_cases": len(set(gold_by_id) & set(pred_by_id)),
         "missing_cases": missing,
         "extra_cases": extra,
         "status_accuracy": status_hits / total_cases if total_cases else 0.0,

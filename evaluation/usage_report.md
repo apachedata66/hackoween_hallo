@@ -3,9 +3,14 @@
 ## Run
 
 - **command**: python code/main.py run
+- **completed_at_utc**: 2026-11-04T22:27:24.841006Z
 - **dataset**: participant-facing dataset/
+- **duration_seconds**: 43.52
 - **model_calls**: 0
+- **output_file**: output.csv
+- **output_sha256**: 327cc232c52174a580677f5887a44a277c107c96e4f31f3863e23e7103e8c45d
 - **requests**: 518
+- **started_at_utc**: 2026-11-04T22:26:41.331268Z
 
 ## Model calls
 

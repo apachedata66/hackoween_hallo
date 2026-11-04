@@ -904,3 +904,45 @@ branch=codex/integration
 repo_root=C:\Users\Asus\Desktop\hallowen
 worktree=main
 parent_agent=none
+## [2026-11-04T22:24:00Z] AI interview model-key question
+
+User Prompt (verbatim, secrets redacted):
+before doing these thing i want to ask should we use api key of llms for the ai interview explanation? answer this and then u can continue ur work
+
+Agent Response Summary:
+Explained that no LLM API key is needed for the AI interview: the team should explain the deterministic system, and the zero-call/token usage is documented honestly. Continued the already-started evaluation work after answering.
+
+Actions:
+* Answered the AI interview/API-key question in commentary.
+
+Context:
+tool=Codex desktop
+model=GPT-6
+branch=codex/integration
+repo_root=C:\Users\Asus\Desktop\hallowen
+worktree=main
+parent_agent=none
+## [2026-11-04T22:27:50Z] Continue public evaluation improvements
+
+User Prompt (verbatim, secrets redacted):
+continue
+
+Agent Response Summary:
+Fetched the latest integration branch before work. Corrected the public scorer so missing cases lower step recall and field accuracy, added false-positive accounting for extra cases and regression tests, and added a reproducible public benchmark command. Investigated the three withheld cases and recurring sequence mismatches; cutoff-eligible evidence does not support guessing their missing resource IDs. Rejected and reverted a planner experiment that reduced sequence accuracy. Added exact full-run provenance to usage_report.md, reran and validated all 518 requests, regenerated code.zip, and documented that 16 custom cases exceed a minimum-of-three requirement with no cap.
+
+Actions:
+* Fetched origin --prune; no newer integration commit was available at start.
+* Added scorer regression coverage, benchmark runner, and README command; refreshed evaluation report and backlog.
+* Ran scorer/custom-case/validator unittest groups and Python compilation; all 11 unittest checks passed.
+* Ran full CLI for 518 requests (43.52s; 151 COMPLETE, 358 INCOMPLETE, 9 NOT_APPLICABLE); output.csv passed validation.
+* Added UTC run timestamps, duration, output path, and SHA-256 to the usage report; checksum matched output.csv.
+* Rebuilt code.zip with evaluation reports and React distribution; package excludes dataset/.
+* Ran git diff --check successfully.
+
+Context:
+tool=Codex desktop
+model=GPT-6
+branch=codex/integration
+repo_root=C:\Users\Asus\Desktop\hallowen
+worktree=main
+parent_agent=none

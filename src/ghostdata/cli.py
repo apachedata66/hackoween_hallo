@@ -9,10 +9,12 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import importlib
 import sys
 import time
 from collections.abc import Iterable
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Protocol
 
@@ -121,6 +123,7 @@ def _run(args: argparse.Namespace) -> int:
     requests = _filter_requests(_read_requests(request_path), args.case)
     provider = _load_provider()
     rulebook = load_rulebook(dataset / "deletion_rules.csv")
+    run_started_at = datetime.now(UTC)
     started = time.monotonic()
     outcomes = provider.build_case_audit_inputs(
         requests,
@@ -228,13 +231,24 @@ def _run(args: argparse.Namespace) -> int:
     usage_report: Path | None = None
     if full_dataset_run:
         tracker = UsageTracker(request_count=len(results))
+        try:
+            output_label = output.resolve().relative_to(Path(__file__).resolve().parents[2])
+            output_label = output_label.as_posix()
+        except ValueError:
+            output_label = str(output.resolve())
+        output_hash = hashlib.sha256(output.read_bytes()).hexdigest()
         usage_report = tracker.write_usage_report(
             Path(__file__).resolve().parents[2] / "evaluation" / "usage_report.md",
             run={
                 "command": "python code/main.py run",
+                "completed_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+                "duration_seconds": f"{time.monotonic() - started:.2f}",
                 "requests": len(results),
                 "model_calls": 0,
                 "dataset": "participant-facing dataset/",
+                "output_file": output_label,
+                "output_sha256": output_hash,
+                "started_at_utc": run_started_at.isoformat().replace("+00:00", "Z"),
             },
         )
 

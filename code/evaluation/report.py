@@ -24,7 +24,13 @@ def _display_path(path: Path) -> str:
         return path.name
 
 
-def render_report(predicted: Path, gold: Path, failures: str, improvements: str) -> str:
+def render_report(
+    predicted: Path,
+    gold: Path,
+    failures: str,
+    improvements: str,
+    prediction_label: str | None = None,
+) -> str:
     metrics = score(read_output(gold), read_output(predicted))
     custom = run_cases()
     lines = [
@@ -32,7 +38,8 @@ def render_report(predicted: Path, gold: Path, failures: str, improvements: str)
         "",
         "## Sample benchmark",
         "",
-        "Metrics below compare the supplied prediction file with the public gold sample. "
+        "Metrics compare public sample harness predictions with public gold. "
+        "Missing prediction cases count as false negatives for step recall and field accuracy. "
         "They do not represent hidden full-dataset accuracy.",
         "",
         "```text",
@@ -75,7 +82,7 @@ def render_report(predicted: Path, gold: Path, failures: str, improvements: str)
             "",
             "## Run metadata",
             "",
-            f"- Prediction file: `{_display_path(predicted)}`",
+            f"- Prediction file: `{prediction_label or _display_path(predicted)}`",
             f"- Gold file: `{_display_path(gold)}`",
             "- Full-dataset accuracy: not measured here; the challenge does not "
             "provide full-dataset gold labels.",
@@ -92,9 +99,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, default=ROOT / "evaluation" / "evaluation_report.md")
     parser.add_argument("--failures", default="", help="honest narrative of failures observed")
     parser.add_argument("--improvements", default="", help="fixes made in response to evaluation")
+    parser.add_argument(
+        "--prediction-label",
+        help="description to record instead of the prediction file path",
+    )
     args = parser.parse_args(argv)
     try:
-        report = render_report(args.pred, args.gold, args.failures, args.improvements)
+        report = render_report(
+            args.pred,
+            args.gold,
+            args.failures,
+            args.improvements,
+            prediction_label=args.prediction_label,
+        )
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(report, encoding="utf-8")
     except (OSError, ValueError, FileNotFoundError) as exc:

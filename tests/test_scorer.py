@@ -55,10 +55,41 @@ class ScorerTests(unittest.TestCase):
 
     def test_missing_case_is_reported_not_ignored(self) -> None:
         gold = read_output(SAMPLE)
-        result = score(gold, gold[:-1])
+        missing = next(item for item in gold if item.steps)
+        pred = [item for item in gold if item.case_id != missing.case_id]
+        result = score(gold, pred)
         self.assertEqual(len(result["missing_cases"]), 1)
         self.assertEqual(result["case_count"], len(gold))
         self.assertEqual(result["scored_cases"], len(gold) - 1)
+        gold_step_count = sum(len(item.steps) for item in gold)
+        self.assertAlmostEqual(
+            result["step_recall"],
+            (gold_step_count - len(missing.steps)) / gold_step_count,
+        )
+        self.assertAlmostEqual(
+            result["step_precision"],
+            1.0,
+        )
+        self.assertAlmostEqual(
+            result["sequence_accuracy"],
+            (len(gold) - 1) / len(gold),
+        )
+
+    def test_extra_case_steps_count_as_false_positives(self) -> None:
+        gold = read_output(SAMPLE)
+        extra = type(gold[0])(
+            case_id="case_extra",
+            deletion_status=gold[0].deletion_status,
+            steps=gold[0].steps,
+        )
+        result = score(gold, [*gold, extra])
+        total_steps = sum(len(item.steps) for item in gold)
+        self.assertEqual(result["extra_cases"], ["case_extra"])
+        self.assertAlmostEqual(
+            result["step_precision"],
+            total_steps / (total_steps + len(extra.steps)),
+        )
+        self.assertEqual(result["step_recall"], 1.0)
 
     def test_report_is_deterministic(self) -> None:
         gold = read_output(SAMPLE)

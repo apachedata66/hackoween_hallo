@@ -10,7 +10,8 @@ a particular final rank.
 - [x] Add `evaluation/evaluation_report.md` with status, step, field, and
   sequence metrics, benchmark failures, limitations, and improvements.
 - [x] Add 16 team-authored synthetic cases; the latest recorded run reports
-  all 16 passing. This exceeds the requirement of at least three cases.
+  all 16 passing. The rule is a minimum of three, with no upper limit, so keep
+  all 16 for wider coverage.
 - [x] Run the deterministic audit over all 518 requests, produce the required
   `output.csv`, and validate its row/output contract.
 - [x] Add `evaluation/usage_report.md` for the full run. The engine made no
@@ -22,19 +23,29 @@ a particular final rank.
 
 ### P0 — Improve measured public evaluation
 
-- [ ] Reproduce the 32-case public benchmark from a clean checkout and
-  investigate the three cases currently reported as missing. Restore coverage
-  only when participant-visible evidence supports identity and resource links;
-  otherwise document the exact unresolved reason.
+- [x] Reproduce the 32-case public benchmark and investigate the three missing
+  cases. `case_01`, `case_02`, and `case_04` have no in-scope participant
+  evidence linked by the current engine. The public gold names account and
+  analytics resource IDs that are absent from the relevant pre-cutoff SQL
+  observations and have no identity-linked activity resource event. Keep these
+  cases in manual review; do not infer IDs from sequential case numbering.
 - [ ] Raise ordered sequence accuracy (currently reported as 0.2188). Triage
   missing and extra steps by case, then fix general evidence, identity, policy,
   or ordering rules rather than adding case-ID-specific behavior.
+  A trial that removed future checks for already-compliant resources reduced
+  public sequence accuracy to 0.0312 and was reverted. Keep the original
+  planner until a contract-backed general rule improves the measured result.
 - [ ] Review step recall (currently 0.8201) and precision (currently 0.9509)
   together. Focus on recurring missing verification checks and extra findings;
   do not improve recall by emitting unsupported steps.
-- [ ] Re-run the public scorer after every behavior change and record before /
-  after status accuracy, step precision/recall/F1, per-field accuracy,
-  sequence accuracy, and benchmark coverage.
+- [x] Correct the scorer so missing prediction cases count as false negatives
+  and extra prediction cases count as false positives in step and field
+  metrics. Add regression coverage for both cases and rerun the scorer.
+- [x] Add `python code/evaluation/run_public_benchmark.py` to reproduce the
+  predictions, 16 synthetic cases, metrics, and evidence-gap notes from the
+  current engine and participant-facing public sample.
+- [x] Re-run the public scorer and refresh `evaluation/evaluation_report.md`
+  after the scorer correction.
 
 ### P1 — Expand regression coverage
 
@@ -58,9 +69,10 @@ a particular final rank.
   report and custom-case results from a clean environment.
 - [ ] Ensure evaluation reports are regenerated from current scorer output
   after engine changes; remove stale metrics or run descriptions.
-- [ ] Record full-run provenance in the usage report (run time, command,
-  request count, and output checksum) so the zero-token figures are tied to
-  the exact `output.csv` produced. Never include secrets or personal data.
+- [x] Record full-run provenance in the usage report (UTC start/completion,
+  duration, command, request count, output path, and SHA-256 checksum) so the
+  zero-token figures are tied to the exact `output.csv` produced. Never include
+  secrets or personal data.
 
 ### P2 — Final submission gate
 
@@ -76,8 +88,9 @@ a particular final rank.
 
 ## Current public benchmark baseline
 
-The current report records 32 gold cases, 29 scored, and 3 missing; status
-accuracy 0.9062; step precision 0.9509; step recall 0.8201; step F1 0.8807;
-and sequence accuracy 0.2188. These are public-sample results, not hidden
-full-dataset accuracy. Re-check them whenever the evaluation report is
-regenerated.
+The corrected report records 32 gold cases, 29 predicted, and 3 held for
+manual review; status accuracy 0.9062; step precision 0.9509; step recall
+0.8031; step F1 0.8708; and sequence accuracy 0.2188. Earlier step recall/F1
+figures omitted gold steps for missing cases and were therefore optimistic.
+These are public-sample results, not hidden full-dataset accuracy. Re-check
+them whenever the evaluation report is regenerated.
