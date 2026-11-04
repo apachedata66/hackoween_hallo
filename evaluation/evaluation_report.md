@@ -7,17 +7,17 @@ Metrics compare public sample harness predictions with public gold. Missing pred
 ```text
 Cases: 32 gold, 29 scored, 3 missing, 0 extra
 Status accuracy:      0.9062
-Step precision:       0.9509
+Step precision:       0.9748
 Step recall:          0.8031
-Step F1:              0.8708
+Step F1:              0.8807
 Sequence accuracy:    0.2188
 Field accuracy:
-  phase          0.7919
-  system_id      0.5685
-  resource_id    0.5685
-  operation      0.6041
-  state          0.6193
-  evidence_id    0.7970
+  phase          0.8144
+  system_id      0.5773
+  resource_id    0.5773
+  operation      0.6237
+  state          0.6289
+  evidence_id    0.8144
 Confusion (rows = gold, cols = predicted):
   gold\pred         COMPLETE       INCOMPLETE   NOT_APPLICABLE
   COMPLETE                 7                0                0
@@ -35,11 +35,8 @@ Failures: 25
     missing: VERIFICATION/analytics_platform/analytics_901/VERIFY_RECORD_ANONYMIZED/ANONYMIZED/evidence_56
   case_06: status INCOMPLETE (gold INCOMPLETE), steps 3 (gold 4)
     missing: VERIFICATION/account_service/account_006/VERIFY_RECORD_ABSENT/ABSENT/
-  case_07: status INCOMPLETE (gold INCOMPLETE), steps 6 (gold 4)
+  case_07: status INCOMPLETE (gold INCOMPLETE), steps 3 (gold 4)
     missing: VERIFICATION/account_service/account_007/VERIFY_RECORD_ABSENT/ABSENT/
-    extra:   FINDING/object_storage/object_19/REPORT_REMAINING_RECORD/PRESENT/activity_4007
-    extra:   REMEDIATION/object_storage/object_19/DELETE_RECORD/ABSENT/
-    extra:   VERIFICATION/object_storage/object_19/VERIFY_RECORD_ABSENT/ABSENT/
   case_08: status INCOMPLETE (gold INCOMPLETE), steps 3 (gold 4)
     missing: VERIFICATION/account_service/account_008/VERIFY_RECORD_ABSENT/ABSENT/
   case_09: status INCOMPLETE (gold INCOMPLETE), steps 3 (gold 5)
@@ -54,9 +51,8 @@ Failures: 25
     extra:   FINDING/analytics_platform/analytics_9914/REPORT_EXPOSED_PII/PRESENT/evidence_01
     extra:   REMEDIATION/analytics_platform/analytics_9914/ANONYMIZE_RECORD/ANONYMIZED/
     extra:   VERIFICATION/analytics_platform/analytics_9914/VERIFY_RECORD_ANONYMIZED/ANONYMIZED/
-  case_17: status INCOMPLETE (gold INCOMPLETE), steps 7 (gold 5)
+  case_17: status INCOMPLETE (gold INCOMPLETE), steps 6 (gold 5)
     extra:   VERIFICATION/account_service/account_6523/VERIFY_RECORD_ABSENT/ABSENT/
-    extra:   VERIFICATION/identity_service/tombstone_17/VERIFY_RECORD_REDACTED/REDACTED/
   case_18: status INCOMPLETE (gold INCOMPLETE), steps 12 (gold 14)
     missing: VERIFICATION/account_service/account_5521/VERIFY_RECORD_ABSENT/ABSENT/
     missing: VERIFICATION/security_service/audit_record_6645/VERIFY_RECORD_PRESENT/PRESENT/
@@ -114,10 +110,10 @@ The evidence engine withheld 3 public sample cases for manual review (case_01: n
 
 ## Improvements made
 
-Corrected evaluation accounting so missing predictions count as false negatives for step recall and field accuracy, while extra-case steps count as false positives. The earlier step recall/F1 (0.8201/0.8807) omitted the expected steps for missing cases; the corrected values are reported below. Added regression coverage and a one-command benchmark harness. Prediction behavior was not changed by the scorer fix.
+Corrected evaluation accounting so missing predictions count as false negatives for step recall and field accuracy, while extra-case steps count as false positives. The earlier step recall/F1 (0.8201/0.8807) omitted the expected steps for missing cases; the corrected values are reported below. Added regression coverage and a one-command benchmark harness. The evidence engine now treats `LINK_RESOURCE_IDENTITY` as relationship evidence only and requires an independent record observation to establish resource state. This removed unsupported case_07 steps, improving step precision from 0.9509 to 0.9748 and F1 from 0.8708 to 0.8807; coverage, status accuracy, recall, and sequence accuracy stayed the same.
 
 ## Run metadata
 
 - Prediction file: `generated in memory by this harness; 29 of 32 cases predicted, 3 held for review`
-- Gold file: `dataset/sample_output.csv`
+- Gold file: `sample_output.csv`
 - Full-dataset accuracy: not measured here; the challenge does not provide full-dataset gold labels.

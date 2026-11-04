@@ -12,12 +12,7 @@ from ghostdata.contract import ResolvedIdentity, ResourceState
 from ghostdata.identity.email import contains_identifier
 from ghostdata.loaders.activity_csv import ActivityEvent
 from ghostdata.loaders.evidence_index import EvidenceMatch
-from ghostdata.loaders.evidence_models import (
-    EvidenceRecord,
-    classify_category,
-    classify_kind,
-    normalize_system_id,
-)
+from ghostdata.loaders.evidence_models import EvidenceRecord, classify_kind
 
 _RESOURCE_RE = re.compile(
     r"\b(?:account|analytics|support|search|cache|export|backup|tombstone|audit_record|"
@@ -117,9 +112,8 @@ def _activity_observations(
     identity: ResolvedIdentity,
     audit_at: datetime,
     linked_resource_ids: Iterable[str],
-    independently_observed: set[tuple[str, str]],
 ) -> list[EvidenceMatch]:
-    """Promote explicit flow/restore checks and resource links to observations.
+    """Promote explicit flow/restore checks to state observations.
 
     These remain marked as operational claims and receive lower confidence;
     they never override stronger SQL/JSON evidence at the same timestamp.
@@ -142,16 +136,12 @@ def _activity_observations(
                 "BACKUP_ARCHIVE",
                 event.target_system or event.source_system,
             )
-        elif event.event_type == "LINK_RESOURCE_IDENTITY" and event.resource_id:
-            system = normalize_system_id(event.target_system or event.source_system)
-            if (system.casefold(), event.resource_id.casefold()) in independently_observed:
-                # Keep the activity event as relationship evidence in the
-                # timeline, but let the linked file/SQL observation establish
-                # the record's actual state.
-                continue
-            category = classify_category(event.target_system, event.resource_id, event.details)
-            kind = classify_kind(category, event.resource_id)
-            claim = "PRESENT"
+        elif event.event_type == "LINK_RESOURCE_IDENTITY":
+            # A relationship event can link a subject to a resource ID, but it
+            # cannot establish that the resource exists or what state it has.
+            # Independent evidence-index matches are joined before this
+            # function; retain link activity in the timeline only.
+            continue
         else:
             continue
         resource_id = event.resource_id
@@ -176,13 +166,9 @@ def _activity_observations(
             text=event.details,
             confidence=0.7,
         )
-        # The matched identifier is useful when the activity is the only
-        # participant-visible linkage between a person and a resource. A link
-        # event establishes association, not that an identifier is stored in
-        # the resource itself, so it must not become a direct-PII field label.
+        # Matched identifiers describe the flow/backup check details.
         values = [token for token in tokens if _contains_identifier(event.details, [token])]
-        matched_identifiers = () if event.event_type == "LINK_RESOURCE_IDENTITY" else tuple(values)
-        matches.append(EvidenceMatch(record, matched_identifiers))
+        matches.append(EvidenceMatch(record, tuple(values)))
     return matches
 
 
@@ -314,14 +300,6 @@ def reconstruct_resources(
         and (match.record.observed_at is None or match.record.observed_at <= audit_at)
         and match.record.resource_id
     ]
-    independently_observed = {
-        (
-            normalize_system_id(match.record.system_id).casefold(),
-            match.record.resource_id.casefold(),
-        )
-        for match in eligible
-        if match.record.source_type != "activity"
-    }
     linked_ids = [match.record.resource_id for match in eligible]
     linked_ids.extend(resource_id for resource_id in linked_resource_ids if resource_id)
     eligible.extend(
@@ -330,7 +308,6 @@ def reconstruct_resources(
             identity,
             audit_at,
             linked_ids,
-            independently_observed,
         )
     )
     # Activity observations can refer to identifiers in resource-linked events.

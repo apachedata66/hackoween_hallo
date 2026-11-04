@@ -259,6 +259,23 @@ def test_resource_reconstruction_uses_explicit_check_text_not_reported_result() 
     assert resources[0].confidence == 0.7
 
 
+def test_identity_link_activity_does_not_claim_resource_presence() -> None:
+    event = ActivityEvent(
+        "activity_link_only",
+        ts("2026-01-01T00:00:00Z"),
+        "LINK_RESOURCE_IDENTITY",
+        "data_catalog",
+        "object_storage",
+        "object_19",
+        "SUCCESS",
+        "Linked user_01 to object_19",
+    )
+    resources = reconstruct_resources(
+        [], identity(), ts("2026-01-02T00:00:00Z"), activity_events=[event]
+    )
+    assert resources == []
+
+
 def test_resource_status_miss_and_deleted_are_absent_but_hit_is_present() -> None:
     resources = reconstruct_resources(
         [
