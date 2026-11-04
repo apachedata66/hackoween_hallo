@@ -79,7 +79,7 @@ def plan_case(case: CaseAuditInput, rulebook: Rulebook) -> PlanOutcome:
 
 
 def _steps_for(status: DeletionStatus, assessments: list[Assessment]) -> list[Step]:
-    drafted: list[Step] = []
+    drafted: list[tuple[Step, float]] = []
     cite_verification = status is DeletionStatus.COMPLETE
     for item in assessments:
         evidence = item.resource.evidence_id
@@ -87,47 +87,66 @@ def _steps_for(status: DeletionStatus, assessments: list[Assessment]) -> list[St
             finding_op, finding_state = item.finding
             remedy_op, remedy_state = item.remediation
             drafted.append(
-                Step(
-                    0,
-                    "FINDING",
-                    item.resource.system_id,
-                    item.resource.resource_id,
-                    finding_op,
-                    finding_state,
-                    evidence,
+                (
+                    Step(
+                        0,
+                        "FINDING",
+                        item.resource.system_id,
+                        item.resource.resource_id,
+                        finding_op,
+                        finding_state,
+                        evidence,
+                    ),
+                    item.resource.confidence,
                 )
             )
             drafted.append(
-                Step(
-                    0,
-                    "REMEDIATION",
-                    item.resource.system_id,
-                    item.resource.resource_id,
-                    remedy_op,
-                    remedy_state,
-                    "",
+                (
+                    Step(
+                        0,
+                        "REMEDIATION",
+                        item.resource.system_id,
+                        item.resource.resource_id,
+                        remedy_op,
+                        remedy_state,
+                        "",
+                    ),
+                    item.resource.confidence,
                 )
             )
         if item.verification:
             verify_op, verify_state = item.verification
             drafted.append(
-                Step(
-                    0,
-                    "VERIFICATION",
-                    item.resource.system_id,
-                    item.resource.resource_id,
-                    verify_op,
-                    verify_state,
-                    evidence if cite_verification else "",
+                (
+                    Step(
+                        0,
+                        "VERIFICATION",
+                        item.resource.system_id,
+                        item.resource.resource_id,
+                        verify_op,
+                        verify_state,
+                        evidence if cite_verification else "",
+                    ),
+                    item.resource.confidence,
                 )
             )
     # Replica observations may produce several assessments for the same
     # logical resource. The output contract permits one step per operation
-    # and resource, so collapse duplicates while preserving a usable citation.
+    # and resource, so collapse duplicates while keeping the strongest citation.
     unique: dict[tuple[str, str, str, str], Step] = {}
-    for step in drafted:
+    unique_priority: dict[tuple[str, str, str, str], tuple[float, int]] = {}
+    for step, confidence in drafted:
         key = step.identity()
         existing = unique.get(key)
-        if existing is None or (not existing.evidence_id and step.evidence_id):
+        evidence_rank = (
+            2
+            if step.evidence_id and not step.evidence_id.startswith("activity_")
+            else 1
+            if step.evidence_id
+            else 0
+        )
+        priority = (confidence, evidence_rank)
+        if existing is None or priority > unique_priority[key]:
             unique[key] = step
+            unique_priority[key] = priority
     return list(unique.values())

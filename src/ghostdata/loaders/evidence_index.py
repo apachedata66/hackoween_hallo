@@ -105,6 +105,13 @@ def _status(raw: dict[str, Any]) -> str:
             if str(raw["restore_allowed"]).casefold() in {"1", "true", "yes"}
             else "BLOCKED"
         )
+    if "deletion_block" in raw:
+        if str(raw["deletion_block"]).casefold() in {"1", "true", "yes"}:
+            return "BLOCKED"
+        if str(raw.get("eligible", "")).casefold() in {"1", "true", "yes"}:
+            return "ACTIVE"
+    if "eligible" in raw:
+        return "ACTIVE" if str(raw["eligible"]).casefold() in {"1", "true", "yes"} else "BLOCKED"
     if "enabled" in raw:
         return "ACTIVE" if str(raw["enabled"]).casefold() in {"1", "true", "yes"} else "DISABLED"
     if raw.get("status_code") is not None:

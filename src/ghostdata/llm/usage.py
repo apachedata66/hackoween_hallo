@@ -60,7 +60,10 @@ class UsageTracker:
         input_tokens = sum(call.input_tokens for call in self.calls)
         output_tokens = sum(call.output_tokens for call in self.calls)
         known_costs = [call.cost_usd for call in self.calls if call.cost_usd is not None]
-        all_costed = bool(self.calls) and len(known_costs) == len(self.calls)
+        # With no calls, cost is exactly zero rather than unknown. This keeps
+        # the required total and per-request cost fields truthful for a fully
+        # deterministic run.
+        all_costed = len(known_costs) == len(self.calls)
         return {
             "calls": len(self.calls),
             "input_tokens": input_tokens,

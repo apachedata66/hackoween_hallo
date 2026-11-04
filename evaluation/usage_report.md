@@ -19,6 +19,6 @@ No model calls were made. The audit core is deterministic (lookup, replay, polic
 - Total tokens: **0**
 - Requests in run: **518**
 - Average tokens per request: **0.00**
-- Estimated total cost: **not available** (no per-call prices were configured for this run)
+- Estimated total cost: **$0.000000** (per request: $0.000000)
 
 Numbers above are rendered from the tracker records of the run that produced `output.csv`, not from memory.

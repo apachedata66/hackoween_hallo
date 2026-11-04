@@ -6,22 +6,22 @@ Metrics below compare the supplied prediction file with the public gold sample. 
 
 ```text
 Cases: 32 gold, 29 scored, 3 missing, 0 extra
-Status accuracy:      0.8750
-Step precision:       0.9245
-Step recall:          0.7778
-Step F1:              0.8448
+Status accuracy:      0.9062
+Step precision:       0.9509
+Step recall:          0.8201
+Step F1:              0.8807
 Sequence accuracy:    0.2188
 Field accuracy:
-  phase          0.7824
-  system_id      0.5596
-  resource_id    0.5596
-  operation      0.5959
-  state          0.6166
-  evidence_id    0.7824
+  phase          0.8083
+  system_id      0.5803
+  resource_id    0.5803
+  operation      0.6166
+  state          0.6321
+  evidence_id    0.8135
 Confusion (rows = gold, cols = predicted):
   gold\pred         COMPLETE       INCOMPLETE   NOT_APPLICABLE
   COMPLETE                 7                0                0
-  INCOMPLETE               1               21                0
+  INCOMPLETE               0               22                0
   NOT_APPLICABLE               0                0                0
 Failures: 22
   case_03: status COMPLETE (gold COMPLETE), steps 2 (gold 3)
@@ -36,10 +36,8 @@ Failures: 22
   case_08: status INCOMPLETE (gold INCOMPLETE), steps 3 (gold 4)
     missing: VERIFICATION/account_service/account_008/VERIFY_RECORD_ABSENT/ABSENT/
   case_09: status INCOMPLETE (gold INCOMPLETE), steps 3 (gold 5)
-    missing: FINDING/backup_service/backup_4978/REPORT_RESTORE_RISK/ACTIVE/evidence_93
     missing: VERIFICATION/account_service/account_3960/VERIFY_RECORD_ABSENT/ABSENT/
     missing: VERIFICATION/security_service/audit_record_4902/VERIFY_RECORD_PRESENT/PRESENT/
-    extra:   FINDING/backup_service/backup_4978/REPORT_RESTORE_RISK/ACTIVE/activity_3709
   case_10: status INCOMPLETE (gold INCOMPLETE), steps 3 (gold 4)
     missing: VERIFICATION/account_service/account_010/VERIFY_RECORD_ABSENT/ABSENT/
   case_12: status INCOMPLETE (gold INCOMPLETE), steps 5 (gold 5)
@@ -50,10 +48,6 @@ Failures: 22
     extra:   REMEDIATION/analytics_platform/analytics_9914/ANONYMIZE_RECORD/ANONYMIZED/
     extra:   VERIFICATION/analytics_platform/analytics_9914/VERIFY_RECORD_ANONYMIZED/ANONYMIZED/
   case_17: status INCOMPLETE (gold INCOMPLETE), steps 7 (gold 5)
-    missing: FINDING/backup_service/backup_3245/REPORT_RESTORE_RISK/ACTIVE/evidence_01
-    missing: REMEDIATION/backup_service/backup_3245/BLOCK_RESTORE/BLOCKED/
-    extra:   FINDING/identity_service/tombstone_17/REPORT_EXPOSED_PII/PRESENT/activity_4011
-    extra:   REMEDIATION/identity_service/tombstone_17/REDACT_RECORD/REDACTED/
     extra:   VERIFICATION/account_service/account_6523/VERIFY_RECORD_ABSENT/ABSENT/
     extra:   VERIFICATION/identity_service/tombstone_17/VERIFY_RECORD_REDACTED/REDACTED/
   case_18: status INCOMPLETE (gold INCOMPLETE), steps 12 (gold 14)
@@ -118,14 +112,14 @@ Ran 16 hand-built cases; 16 passed.
 
 ## Failures found
 
-Three public absence-only cases (case_01, case_02, case_04) remain unscored because the linked evidence does not identify the missing resource IDs. The benchmark reports 29 of 32 public cases scored and 3 missing.
+The public benchmark scores 29 of 32 cases; three absence-only cases have no evidence-linked resource IDs, so they cannot be scored without guessing. Residual differences include case_03, whose expected analytics resource has no identity linkage in participant-facing evidence; case_07, where activity_4007 links object_19 to the subject but the supplied deletion policy conflicts with the public-gold omission; and case_12, where public gold expects deletion of an analytics profile although deletion_rules.csv requires anonymization. Other differences include expected resource checks not established by available evidence. Hidden full-dataset accuracy is unavailable.
 
 ## Improvements made
 
-Fixed trace-local state contamination, explicit non-deletion classification, search/marketing category mapping, lexical output sorting, and NOT_FOUND normalization. Full hidden-set accuracy remains unavailable.
+Updated backup parsing so eligible, unblocked backups are treated as active restore risks; separated identity-link evidence from direct PII exposure; interpreted deleted account lifecycle state without dropping a retained tombstone; and preferred the strongest file-backed citation when duplicate replica observations collapse. Refreshed all 518 predictions and retained conservative handling where participant evidence or sample gold conflicts with policy.
 
 ## Run metadata
 
-- Prediction file: `ghostdata-reviewable-samples-output.csv`
+- Prediction file: `predictions.csv`
 - Gold file: `dataset/sample_output.csv`
 - Full-dataset accuracy: not measured here; the challenge does not provide full-dataset gold labels.

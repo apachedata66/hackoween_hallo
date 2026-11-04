@@ -166,9 +166,12 @@ def _activity_observations(
             confidence=0.7,
         )
         # The matched identifier is useful when the activity is the only
-        # participant-visible linkage between a person and a process.
+        # participant-visible linkage between a person and a resource. A link
+        # event establishes association, not that an identifier is stored in
+        # the resource itself, so it must not become a direct-PII field label.
         values = [token for token in tokens if _contains_identifier(event.details, [token])]
-        matches.append(EvidenceMatch(record, tuple(values)))
+        matched_identifiers = () if event.event_type == "LINK_RESOURCE_IDENTITY" else tuple(values)
+        matches.append(EvidenceMatch(record, matched_identifiers))
     return matches
 
 
@@ -227,6 +230,13 @@ def replay_activity(
 
 def _observation_exists(record: EvidenceRecord) -> bool | None:
     status = record.status.strip().upper().replace("_", " ")
+    if (
+        record.data_category == "ACCOUNT_TOMBSTONE"
+        and str(record.raw.get("account_status", "")).strip().upper() == "DELETED"
+    ):
+        # This field describes the account's lifecycle, not the existence of
+        # the deleted-customer-reference row that preserves retained links.
+        return True
     if status in _ABSENT:
         return False
     if status in _PRESENT:
