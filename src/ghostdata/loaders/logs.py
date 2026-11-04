@@ -211,9 +211,7 @@ def load_log_text(
     for event in events:
         if event.trace_id:
             context = {
-                key: value
-                for key, value in event.fields.items()
-                if key in _TRACE_CONTEXT_FIELDS
+                key: value for key, value in event.fields.items() if key in _TRACE_CONTEXT_FIELDS
             }
             trace_fields.setdefault(event.trace_id, {}).update(context)
     events = [

@@ -128,6 +128,9 @@ class UsageTracker:
                 "used **0 input tokens, 0 output tokens, and $0.00 cost**."
             )
             lines.append("")
+            lines.append("- Provider: **none** (no model provider was contacted).")
+            lines.append("- Model: **none** (no model was configured or invoked).")
+            lines.append("")
         else:
             lines.append(
                 "| Provider | Model | Calls | Input tokens | Output tokens | "

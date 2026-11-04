@@ -534,7 +534,7 @@ class EvidenceIndex:
             links.setdefault((target_system.casefold(), resource_id.casefold()), resource_id)
 
         matches_by_key: dict[tuple[str, str, str, str | None, datetime | None], EvidenceMatch] = {}
-        for (target_system, resource_key), resource_id in sorted(links.items()):
+        for (target_system, resource_key), _resource_id in sorted(links.items()):
             candidates = list(self._records_by_resource.get(resource_key, ()))
             for record in candidates:
                 system_id = normalize_system_id(record.system_id).casefold()

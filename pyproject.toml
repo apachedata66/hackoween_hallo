@@ -5,13 +5,14 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ghostdata"
 version = "0.1.0"
-description = "Ghost Data Still Exists - deletion-audit agent (HackerRank Orchestrate, Oct 2026)"
+description = "Ghost Data Still Exists - evidence-backed deletion audit agent"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = ["pypdf==6.17.0"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff>=0.6"]
+ui = ["streamlit>=1.40,<2"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

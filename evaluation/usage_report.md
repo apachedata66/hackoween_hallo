@@ -2,14 +2,21 @@
 
 ## Run
 
-- **command**: python code/main.py run
+- **command**: python code/main.py run --out output.csv
 - **dataset**: participant-facing dataset/
 - **model_calls**: 0
+- **model_names**: none
+- **model_providers**: none
 - **requests**: 518
+- **runtime_seconds**: 42.3
+- **warnings**: 34
 
 ## Model calls
 
 No model calls were made. The audit core is deterministic (lookup, replay, policy application, sorting), so the final run used **0 input tokens, 0 output tokens, and $0.00 cost**.
+
+- Provider: **none** (no model provider was contacted).
+- Model: **none** (no model was configured or invoked).
 
 ## Overall totals
 

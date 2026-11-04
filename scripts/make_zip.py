@@ -53,6 +53,8 @@ def _included_files() -> list[Path]:
         ROOT / "src",
         ROOT / "evaluation",
         ROOT / "config",
+        ROOT / "scripts",
+        ROOT / "ui",
         ROOT / "pyproject.toml",
         ROOT / "requirements.txt",
     ):
