@@ -2,15 +2,15 @@
 
 ## Run
 
-- **command**: python code/main.py run --no-llm
-- **completed_at_utc**: 2026-11-05T05:07:26.513728Z
+- **command**: python code/main.py run --out output.csv
+- **completed_at_utc**: 2026-11-05T05:42:44.914480Z
 - **dataset**: participant-facing dataset/
-- **duration_seconds**: 43.14
+- **duration_seconds**: 102.34
 - **model_calls**: 0
 - **output_file**: output.csv
 - **output_sha256**: f86402ab8ac621bb8006f6d1ac69f72802a7e646d19bff387a196e174a5cba5c
 - **requests**: 518
-- **started_at_utc**: 2026-11-05T05:06:43.377665Z
+- **started_at_utc**: 2026-11-05T05:41:02.567299Z
 
 ## Model calls
 

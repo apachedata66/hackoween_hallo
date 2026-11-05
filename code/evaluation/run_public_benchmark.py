@@ -104,7 +104,9 @@ def main() -> int:
         "time proximity alone is not used to assign a resource to a person. "
         "These parser corrections did not change the public exact-sequence score "
         "because the remaining unlinked sample resources lack a reliable subject "
-        "relationship in the supplied evidence."
+        "relationship in the supplied evidence. The log loader now shares trace "
+        "identity context only when all observations agree; conflicting subject "
+        "values remain event-local, covered by Person B's batch-trace regression."
     )
     with tempfile.TemporaryDirectory(prefix=".public-benchmark-", dir=ROOT / "evaluation") as work:
         prediction_path = Path(work) / "predictions.csv"
