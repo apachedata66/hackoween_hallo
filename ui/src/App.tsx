@@ -315,7 +315,6 @@ function App() {
             if (!stopped) {
               setCases(result.cases)
               setFilter('ALL')
-              setWorkspaceView('cases')
               setRunError('')
             }
           } catch (error) {
@@ -467,11 +466,11 @@ function App() {
   )
   const openFollowupCount = followupTasks.filter((task) => !task.checked).length
 
-  async function startRun(mode: 'full' | 'samples' | 'saved') {
+  async function startRun(mode: 'full' | 'samples' | 'saved', destination: WorkspacePage = 'overview') {
     if (activeRun || starting) return
     setStarting(true)
     navigate('workspace')
-    setWorkspaceView('overview')
+    setWorkspaceView(destination)
     setRunError('')
     setCases([])
     setSearchCases(null)
@@ -490,7 +489,6 @@ function App() {
         setCasesLoading(true)
         const page = await api<CasePage>(`/api/runs/${result.run_id}/cases?offset=0&limit=1000`)
         setCases(page.cases)
-        setWorkspaceView('cases')
       }
     } catch (error) {
       setRunError(error instanceof Error ? error.message : 'The audit could not be started.')
@@ -728,6 +726,8 @@ function App() {
               {healthError && <div className="run-error" role="alert"><AlertTriangle size={16} />{healthError}</div>}
               {health && !health.ready && <div className="run-error" role="alert"><AlertTriangle size={16} />The participant dataset is incomplete. Check the required files under dataset/ before starting a run.</div>}
 
+              {workspaceView !== 'overview' && (activeRun || starting) && <RunProgress run={run} loadingCases={casesLoading} />}
+
               {workspaceView === 'overview' && <>
                 <section className="panel run-card" aria-labelledby="run-title">
                   <div className="run-card-icon"><ShieldCheck size={20} aria-hidden="true" /></div>
@@ -797,8 +797,8 @@ function App() {
                 runState={run?.state ?? null}
                 ready={Boolean(health?.ready)}
                 busy={Boolean(activeRun || starting)}
-                onRunSample={() => void startRun('samples')}
-                onOpenSaved={() => void startRun('saved')}
+                onRunSample={() => void startRun('samples', workspaceView)}
+                onOpenSaved={() => void startRun('saved', workspaceView)}
               />}
             </>
           )}

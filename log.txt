@@ -1879,3 +1879,23 @@ branch=codex/integration
 repo_root=C:\Users\Asus\Desktop\hallowen
 worktree=main
 parent_agent=none
+## [2026-11-05T14:10:40+05:30] Keep workspace runs in the selected section
+
+User Prompt (verbatim, secrets redacted):
+u fool all the tabs are inderictly pointing out to overview tab then what is the use of making seperte tab what are u doing iam getting frustrated now i said to implent some good feture but u are not doing aything at all
+
+Agent Response Summary:
+Fixed the run flow so starting a sample or opening saved output from Evidence, System risks, or Remediation queue keeps the user on that section after the run completes. Removed automatic redirects to Overview and Case register, and kept progress visible while a run is active from another section. The UI production build succeeded.
+
+Actions:
+* Fetched latest branches before editing.
+* Updated ui/src/App.tsx and rebuilt ui/dist.
+* Ran npm run build successfully.
+
+Context:
+tool=Codex desktop
+model=GPT-6
+branch=codex/integration
+repo_root=C:\Users\Asus\Desktop\hallowen
+worktree=main
+parent_agent=none
