@@ -12,15 +12,27 @@ a particular final rank.
 - [x] Add 16 team-authored synthetic cases; the latest recorded run reports
   all 16 passing. The rule is a minimum of three, with no upper limit, so keep
   all 16 for wider coverage.
-- [x] Run the deterministic audit over all 518 requests, produce the required
-  `output.csv`, and validate its row/output contract.
-- [x] Add `evaluation/usage_report.md` for the full run. The engine made no
-  model calls, so provider/model are none and token and cost totals are zero.
-  Keep this report factual; do not add a model solely to make the report look
-  more substantial.
+- [x] Run the deterministic audit over all 518 requests and validate the
+  output contract. The current root `output.csv` was regenerated with local
+  OCR after the link-only safety fix and contains exactly 518 sorted cases.
+- [x] Record current full-run provenance and zero model usage. The latest run
+  completed in 56.02 seconds with 0 model calls, tokens, or cost; its output
+  checksum is recorded in `evaluation/usage_report.md`.
 - [x] Integrate Person B's JSON timestamp-precedence fix and loader regression
   tests. Re-running the benchmark showed no public prediction changes; the
   fix addresses explicit nested timestamps that can affect hidden cases.
+- [x] Correct link-only resource promotion: `LINK_RESOURCE_IDENTITY` proves an
+  association, not current resource presence. Require independent resource
+  evidence before planning a state finding; regression coverage also confirms
+  a filename alias can join a relationship to an independent same-system
+  listing without letting the relationship alone prove presence.
+- [x] Configure local Tesseract 5.5.3 and rerun all 518 requests. OCR linked
+  the nine screenshot cases that had previously been held; the final run
+  emitted no manual-review cases and validated the CSV.
+- [x] Make extraction-cache keys sensitive to OCR/tool availability so empty
+  results cached before Tesseract installation cannot hide newly readable
+  evidence. A regression test covers the no-OCR-then-OCR transition.
+- [x] Run the Python suite (83 tests), Ruff, and the React production build.
 
 ## Next work, in priority order
 
@@ -32,7 +44,7 @@ a particular final rank.
   analytics resource IDs that are absent from the relevant pre-cutoff SQL
   observations and have no identity-linked activity resource event. Keep these
   cases in manual review; do not infer IDs from sequential case numbering.
-- [ ] Raise ordered sequence accuracy (currently reported as 0.2188). Triage
+- [ ] Raise ordered sequence accuracy (currently 0.1875 with OCR enabled). Triage
   missing and extra steps by case, then fix general evidence, identity, policy,
   or ordering rules rather than adding case-ID-specific behavior.
   A trial that removed future checks for already-compliant resources reduced
@@ -41,6 +53,10 @@ a particular final rank.
 - [ ] Review step recall (currently 0.8031) and precision (currently 0.9509)
   together. Focus on recurring missing verification checks and extra findings;
   do not improve recall by emitting unsupported steps.
+- [ ] Review the OCR-enabled public sample mismatch in `case_07`: the engine
+  finds `object_19` through cutoff-eligible `activity_4007` plus independent
+  screenshot evidence `evidence_46`; public gold omits it. Keep the supported
+  finding while investigating the mismatch; do not add a case-specific filter.
 - [x] Correct the scorer so missing prediction cases count as false negatives
   and extra prediction cases count as false positives in step and field
   metrics. Add regression coverage for both cases and rerun the scorer.
@@ -79,21 +95,26 @@ a particular final rank.
 
 ### P2 — Final submission gate
 
-- [ ] Run the documented clean-install command and full 518-case CLI from the
-  repository root; validate the resulting CSV and confirm exact case coverage.
-- [ ] Rebuild `code.zip` after the final code, reports, and React bundle are
+- [x] Run the full 518-case CLI from the repository root with OCR available;
+  validate the resulting CSV and confirm exact case coverage.
+- [ ] Repeat the run from a clean dependency install to verify the README
+  setup path independently of the existing Python environment.
+- [x] Rebuild `code.zip` after the final code, reports, interview notes, and React bundle are
   ready. Inspect the archive to confirm it contains runnable code, README,
   configuration, and both evaluation reports, while excluding `dataset/`,
   caches, virtual environments, nested archives, credentials, and secrets.
-- [ ] Keep `output.csv` and `log.txt` as the separate submission deliverables
-  required by the repository contract; prepare the AI interview explanation
-  of architecture, evidence handling, evaluation, limits, and improvements.
+- [x] Keep `output.csv` and `log.txt` as the separate submission deliverables
+  required by the repository contract; add `evaluation/interview_prep.md` with
+  the architecture, evidence handling, demo, measured results, and limitations.
 
 ## Current public benchmark baseline
 
-The corrected report records 32 gold cases, 29 predicted, and 3 held for
+The OCR-enabled report records 32 gold cases, 29 predicted, and 3 held for
 manual review; status accuracy 0.9062; step precision 0.9509; step recall
-0.8031; step F1 0.8708; and sequence accuracy 0.2188. Earlier step recall/F1
-figures omitted gold steps for missing cases and were therefore optimistic.
-These are public-sample results, not hidden full-dataset accuracy. Re-check
-them whenever the evaluation report is regenerated.
+0.8031; step F1 0.8708; sequence accuracy 0.1875. Field accuracy is phase
+0.7919, system 0.5685, resource 0.5635, operation 0.6041, state 0.6193, and
+evidence 0.7970. These public-sample results are diagnostic, not hidden
+full-dataset accuracy. Earlier no-OCR metrics did not include the supported
+`object_19` finding in case_07; keep the current evidence-grounded output and
+review the public-gold disagreement before drawing conclusions. Re-check all
+metrics whenever the report is regenerated.

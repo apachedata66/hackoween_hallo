@@ -101,13 +101,42 @@ def test_corrupt_document_cache_reextracts_original_content(tmp_path: Path) -> N
 def test_image_without_tesseract_returns_deterministic_warning(tmp_path: Path, monkeypatch) -> None:
     image = tmp_path / "scan.png"
     image.write_bytes(b"fictional image fixture")
-    monkeypatch.setattr(documents.shutil, "which", lambda _name: None)
+    monkeypatch.setattr(documents, "_tesseract_executable", lambda: "")
     result = extract_document(EvidenceFile("evidence_image", "scan.png", "fixture", None), tmp_path)
     assert result.method == "none"
     assert result.confidence == 0.0
     assert result.warnings == (
         "Local OCR is unavailable; install Tesseract or set TESSERACT_CMD to read this image.",
     )
+
+
+def test_image_cache_refreshes_when_tesseract_becomes_available(
+    tmp_path: Path, monkeypatch
+) -> None:
+    image = tmp_path / "scan.png"
+    image.write_bytes(b"fictional image fixture")
+    entry = EvidenceFile("evidence_image", "scan.png", "fixture", None)
+    cache = tmp_path / "cache"
+    monkeypatch.setattr(documents, "_tesseract_executable", lambda: "")
+
+    first = extract_document(entry, tmp_path, cache_dir=cache)
+    assert first.method == "none"
+
+    executable = tmp_path / "tesseract.exe"
+    executable.write_bytes(b"fictional executable fixture")
+    monkeypatch.setattr(documents, "_tesseract_executable", lambda: str(executable))
+    monkeypatch.setattr(
+        documents.subprocess,
+        "run",
+        lambda *args, **kwargs: documents.subprocess.CompletedProcess(
+            args[0], 0, stdout="resource alias text", stderr=""
+        ),
+    )
+
+    second = extract_document(entry, tmp_path, cache_dir=cache)
+    assert second.method == "tesseract_ocr"
+    assert second.text == "resource alias text"
+    assert len(list(cache.glob("*.json"))) == 2
 
 
 def test_sql_snapshot_preserves_source_id_replica_and_escaped_json(tmp_path: Path) -> None:

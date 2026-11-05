@@ -19,6 +19,8 @@ from ghostdata.loaders import (
     parse_records_text,
     parse_timestamp,
 )
+from ghostdata.loaders.documents import DocumentExtraction
+from ghostdata.loaders.evidence_index import _records_from_text_document
 from ghostdata.state import reconstruct_resources, replay_activity
 
 
@@ -274,6 +276,111 @@ def test_identity_link_activity_does_not_claim_resource_presence() -> None:
         [], identity(), ts("2026-01-02T00:00:00Z"), activity_events=[event]
     )
     assert resources == []
+
+
+def test_identity_link_joins_independent_cutoff_file_alias_evidence() -> None:
+    image = DocumentExtraction(
+        evidence_id="evidence_46",
+        file_path="evidence/images/object_storage_browser.png",
+        content_sha256="fixture-digest",
+        method="tesseract_ocr",
+        text=(
+            "Nimbus Object Storage\n"
+            "eu-west-1 / support-attachments\n"
+            "delivery_confirmation_19.pdf\n"
+        ),
+        confidence=0.65,
+    )
+    index = EvidenceIndex(
+        [],
+        extractions=[image],
+        manifest_times={"evidence_46": ts("2026-02-13T08:00:00Z")},
+        manifest_origins={"evidence_46": "object_storage"},
+    )
+    link = ActivityEvent(
+        "activity_4007",
+        ts("2026-02-13T08:07:01Z"),
+        "LINK_RESOURCE_IDENTITY",
+        "data_catalog",
+        "object_storage",
+        "object_19",
+        "SUCCESS",
+        "Attachment catalog confirmed object_19 (delivery_confirmation_19.pdf) "
+        "belongs only to new@example.com and user_01.",
+    )
+
+    linked_ids, matches = index.find_linked_resource_records(
+        identity(), [link], ts("2026-02-14T10:00:00Z")
+    )
+
+    assert linked_ids == ["object_19"]
+    assert len(matches) == 1
+    assert matches[0].record.evidence_id == "evidence_46"
+    assert matches[0].record.system_id == "object_storage"
+    assert matches[0].record.resource_id == "object_19"
+    assert matches[0].record.data_category == "SUPPORT_ATTACHMENT"
+    assert matches[0].record.status == "PRESENT"
+
+
+def test_screenshot_origin_and_continuous_sync_set_flow_system_and_state() -> None:
+    entry = EvidenceFile(
+        "evidence_14",
+        "evidence/images/connector_management_console_20260807.png",
+        "integration_admin",
+        ts("2026-08-07T08:00:00Z"),
+    )
+    extraction = DocumentExtraction(
+        evidence_id="evidence_14",
+        file_path=entry.file_path,
+        content_sha256="fixture-digest",
+        method="tesseract_ocr",
+        text=(
+            "Connections data_flow_1121 Status Healthy "
+            "Selector new@example.com Sync mode Continuous sync"
+        ),
+        confidence=0.65,
+    )
+
+    records = _records_from_text_document(entry, extraction)
+
+    flow = next(record for record in records if record.resource_id == "data_flow_1121")
+    assert flow.system_id == "integration_service"
+    assert flow.kind == "flow"
+    assert flow.status == "ACTIVE"
+
+
+def test_identity_link_alias_evidence_after_cutoff_is_excluded() -> None:
+    image = DocumentExtraction(
+        evidence_id="evidence_46",
+        file_path="evidence/images/object_storage_browser.png",
+        content_sha256="fixture-digest",
+        method="tesseract_ocr",
+        text="Nimbus Object Storage delivery_confirmation_19.pdf",
+        confidence=0.65,
+    )
+    index = EvidenceIndex(
+        [],
+        extractions=[image],
+        manifest_times={"evidence_46": ts("2026-02-13T08:11:00Z")},
+        manifest_origins={"evidence_46": "object_storage"},
+    )
+    link = ActivityEvent(
+        "activity_4007",
+        ts("2026-02-13T08:07:01Z"),
+        "LINK_RESOURCE_IDENTITY",
+        "data_catalog",
+        "object_storage",
+        "object_19",
+        "SUCCESS",
+        "object_19 (delivery_confirmation_19.pdf) belongs to new@example.com and user_01.",
+    )
+
+    linked_ids, matches = index.find_linked_resource_records(
+        identity(), [link], ts("2026-02-13T08:10:00Z")
+    )
+
+    assert linked_ids == ["object_19"]
+    assert matches == []
 
 
 def test_resource_status_miss_and_deleted_are_absent_but_hit_is_present() -> None:

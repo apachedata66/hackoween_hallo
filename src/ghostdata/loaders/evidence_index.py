@@ -35,11 +35,62 @@ _RESOURCE_RE = re.compile(
     r"(?=[A-Za-z0-9-]*\d)[A-Za-z0-9-]+\b",
     re.I,
 )
+_FILENAME_RE = re.compile(
+    r"(?<![A-Za-z0-9_-])[A-Za-z0-9][A-Za-z0-9_. -]*\.(?:pdf|csv|zip|json|jpg|jpeg|png|"
+    r"txt|log|sql|xml|parquet|avro)(?![A-Za-z0-9_-])",
+    re.I,
+)
 _TEXT_ROW = re.compile(
     r"^\s*-\s*(?P<time>\S+)\s*\|\s*(?P<system>[^|]+)\|\s*(?P<resource>[^|]+)\|"
     r"\s*(?P<category>[^|]+)\|\s*(?P<status>[^|]+)\|\s*(?P<subject>.+?)\s*$",
     re.I,
 )
+_ORIGIN_SYSTEMS = {
+    "account_admin_portal": "account_service",
+    "account_history_service": "identity_service",
+    "customer_account_service": "account_service",
+    "customer_export_service": "export_service",
+    "customer_search_primary_capture": "search_service",
+    "downstream_delivery_service": "email_delivery_service",
+    "integration_admin": "integration_service",
+    "integration_management_service": "integration_service",
+    "legal_retention_service": "legal_service",
+    "search_index_admin": "search_service",
+    "security_audit_service": "security_service",
+}
+
+
+def _normalized_origin_system(origin: str) -> str:
+    normalized = origin.strip().casefold()
+    return _ORIGIN_SYSTEMS.get(normalized, normalize_system_id(normalized))
+
+
+def _document_system(entry: EvidenceFile, category: str) -> str:
+    origin = entry.origin.strip().casefold()
+    if origin in _ORIGIN_SYSTEMS:
+        return _ORIGIN_SYSTEMS[origin]
+    normalized = _normalized_origin_system(origin)
+    if normalized.endswith(("_service", "_platform")) or normalized in {
+        "object_storage",
+        "object_store",
+    }:
+        return normalized
+    return system_for_category(category)
+
+
+def _document_status(text: str, kind: str) -> str:
+    """Read explicit flow state from a cutoff-bounded evidence document."""
+    if kind != "flow":
+        return "PRESENT"
+    if re.search(r"\b(?:disabled|inactive|paused|stopped)\b", text, re.IGNORECASE):
+        return "DISABLED"
+    if re.search(
+        r"\b(?:continuous\s+sync|continuous\s+delivery|sync\s+enabled|active|running)\b",
+        text,
+        re.IGNORECASE,
+    ):
+        return "ACTIVE"
+    return "PRESENT"
 
 
 @dataclass(frozen=True)
@@ -250,7 +301,7 @@ def _records_from_text_document(
                 source_type="text",
                 captured_at=entry.captured_at,
                 observed_at=observed,
-                system_id=matched.group("system").strip(),
+                system_id=normalize_system_id(matched.group("system").strip()),
                 resource_id=resource,
                 data_category=category,
                 kind=classify_kind(category, resource),
@@ -265,7 +316,7 @@ def _records_from_text_document(
         return records
     # Reports without a pipe-delimited table may still contain resource ids.
     category = classify_category(entry.file_path, extraction.text)
-    system = system_for_category(category)
+    system = _document_system(entry, category)
     ids = sorted(set(_RESOURCE_RE.findall(extraction.text)), key=str.casefold)
     for resource in ids:
         records.append(
@@ -280,7 +331,9 @@ def _records_from_text_document(
                 data_category=classify_category(category, resource, entry.file_path),
                 kind=classify_kind(category, resource),
                 replica=None,
-                status="PRESENT",
+                status=_document_status(
+                    extraction.text, classify_kind(category, resource)
+                ),
                 identifiers_present=(),
                 raw={"document_text": extraction.text},
                 text=extraction.text,
@@ -307,6 +360,7 @@ class EvidenceIndex:
         warnings: Sequence[EvidenceWarning] = (),
         coverage: Sequence[dict[str, Any]] = (),
         manifest_times: dict[str, datetime | None] | None = None,
+        manifest_origins: dict[str, str] | None = None,
     ) -> None:
         self.records = list(records)
         self._search_texts = [
@@ -331,6 +385,7 @@ class EvidenceIndex:
         self.warnings = list(warnings)
         self._coverage = list(coverage)
         self._manifest_times = dict(manifest_times or {})
+        self._manifest_origins = dict(manifest_origins or {})
 
     @classmethod
     def from_dataset(
@@ -426,6 +481,7 @@ class EvidenceIndex:
             warnings=warnings,
             coverage=list(unique_coverage.values()),
             manifest_times={entry.file_id: entry.captured_at for entry in manifest},
+            manifest_origins={entry.file_id: entry.origin for entry in manifest},
         )
 
     def coverage(self) -> list[dict[str, Any]]:
@@ -514,12 +570,14 @@ class EvidenceIndex:
         A link event can establish which resource belongs to an identity, but it
         is not itself a reliable observation of that resource's current state.
         The exact resource ID and target system must also appear in a participant-
-        visible record before that record is added to the case.
+        visible record before that record is added to the case. If a link names
+        a file alias, the alias may be joined to an independently captured file
+        listing in the same source system; the link alone still proves no state.
         """
 
         values = _identity_values(identity)
         phone_text_cache: dict[str, str] = {}
-        links: dict[tuple[str, str], str] = {}
+        links: dict[tuple[str, str], tuple[str, set[str]]] = {}
         for event in events:
             if event.event_type != "LINK_RESOURCE_IDENTITY" or event.event_time > audit_at:
                 continue
@@ -531,10 +589,16 @@ class EvidenceIndex:
             phone_text = phone_text_cache.setdefault(details, re.sub(r"\D", "", details))
             if not self._record_matches(details, phone_text, values):
                 continue
-            links.setdefault((target_system.casefold(), resource_id.casefold()), resource_id)
+            link_key = (target_system.casefold(), resource_id.casefold())
+            existing = links.get(link_key)
+            if existing:
+                existing[1].add(event.details)
+            else:
+                links[link_key] = (resource_id, {event.details})
 
         matches_by_key: dict[tuple[str, str, str, str | None, datetime | None], EvidenceMatch] = {}
-        for (target_system, resource_key), _resource_id in sorted(links.items()):
+        for (target_system, resource_key), (resource_id, event_details) in sorted(links.items()):
+            matched_exact_record = False
             candidates = list(self._records_by_resource.get(resource_key, ()))
             for record in candidates:
                 system_id = normalize_system_id(record.system_id).casefold()
@@ -552,6 +616,7 @@ class EvidenceIndex:
                     record.effective_time,
                 )
                 matches_by_key[key] = EvidenceMatch(record, ())
+                matched_exact_record = True
 
             if self.sql_index:
                 for row in self._sql_rows_by_resource.get(resource_key, ()):
@@ -571,8 +636,65 @@ class EvidenceIndex:
                         record.effective_time,
                     )
                     matches_by_key[key] = EvidenceMatch(record, ())
+                    matched_exact_record = True
 
-        linked_ids = sorted(set(links.values()), key=str.casefold)
+            if matched_exact_record:
+                continue
+
+            aliases = {
+                match.group(0).strip().rstrip(".,;:")
+                for details in event_details
+                for match in _FILENAME_RE.finditer(details)
+            }
+            for alias in sorted(aliases, key=str.casefold):
+                alias_pattern = re.compile(
+                    rf"(?<![\w.-]){re.escape(alias)}(?![\w.-])", re.IGNORECASE
+                )
+                for extraction in self.extractions:
+                    source_system = _normalized_origin_system(
+                        self._manifest_origins.get(extraction.evidence_id, "")
+                    ).casefold()
+                    captured_at = self._manifest_times.get(extraction.evidence_id)
+                    if (
+                        source_system != target_system
+                        or captured_at is None
+                        or captured_at > audit_at
+                    ):
+                        continue
+                    if not alias_pattern.search(extraction.text):
+                        continue
+                    category = classify_category(
+                        target_system, alias, extraction.file_path, extraction.text
+                    )
+                    if not category:
+                        continue
+                    record = EvidenceRecord(
+                        evidence_id=extraction.evidence_id,
+                        file_path=extraction.file_path,
+                        source_type="document",
+                        captured_at=captured_at,
+                        observed_at=None,
+                        system_id=target_system,
+                        resource_id=resource_id,
+                        data_category=category,
+                        kind=classify_kind(category, resource_id),
+                        replica=None,
+                        status="PRESENT",
+                        identifiers_present=(),
+                        raw={"linked_filename": alias},
+                        text=extraction.text,
+                        confidence=extraction.confidence,
+                    )
+                    key = (
+                        record.evidence_id,
+                        record.system_id,
+                        record.resource_id,
+                        record.replica,
+                        record.effective_time,
+                    )
+                    matches_by_key[key] = EvidenceMatch(record, ())
+
+        linked_ids = sorted({value[0] for value in links.values()}, key=str.casefold)
         hits = list(matches_by_key.values())
         hits.sort(
             key=lambda hit: (

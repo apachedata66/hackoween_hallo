@@ -53,6 +53,13 @@ def main() -> int:
         )
     else:
         failures = "All public sample cases produced evidence-supported predictions."
+    failures += (
+        " One OCR-enabled disagreement remains: sample case_07 includes object_19 "
+        "as a SUPPORT_ATTACHMENT linked by activity_4007 and independently listed "
+        "in evidence_46 before the audit cutoff. The public gold omits it, so its "
+        "finding, remediation, and verification count as extra steps. The engine "
+        "keeps the evidence-backed record rather than adding a case-specific exception."
+    )
 
     improvements = (
         "Corrected evaluation accounting so missing predictions count as false "
@@ -60,7 +67,16 @@ def main() -> int:
         "count as false positives. The earlier step recall/F1 (0.8201/0.8807) "
         "omitted the expected steps for missing cases; the corrected values "
         "are reported below. Added regression coverage and a one-command "
-        "benchmark harness. Prediction behavior was not changed by the scorer fix."
+        "benchmark harness. Also stopped treating identity-link events alone "
+        "as proof that a resource is still present; independent resource "
+        "observations are required for state findings. Added a cutoff-bounded "
+        "filename-alias join for independently captured same-system listings, "
+        "plus explicit continuous-sync state extraction for flow documents. "
+        "Added extractor-aware document caching so OCR results are refreshed when "
+        "Tesseract becomes available after an earlier no-OCR run. The final full "
+        "dataset run used local Tesseract 5.5.3 and recovered the nine previously "
+        "unlinked screenshot cases; the benchmark below is rerun with that same "
+        "OCR-enabled environment."
     )
     with tempfile.TemporaryDirectory(prefix=".public-benchmark-", dir=ROOT / "evaluation") as work:
         prediction_path = Path(work) / "predictions.csv"

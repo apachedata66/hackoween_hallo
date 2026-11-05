@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.metadata
 import json
 import os
 import shutil
@@ -13,7 +14,7 @@ from pathlib import Path
 
 from ghostdata.loaders.evidence_csv import EvidenceFile
 
-_CACHE_VERSION = "evidence-text-v1"
+_CACHE_VERSION = "evidence-text-v2"
 
 
 @dataclass(frozen=True)
@@ -35,8 +36,38 @@ def _inside(base: Path, candidate: Path) -> bool:
         return False
 
 
+def _tesseract_executable() -> str:
+    return os.environ.get("TESSERACT_CMD", "").strip() or shutil.which("tesseract") or ""
+
+
+def _tool_fingerprint(executable: str) -> str:
+    if not executable:
+        return "unavailable"
+    path = Path(executable)
+    try:
+        stat = path.stat()
+        return f"{path.resolve()}:{stat.st_size}:{stat.st_mtime_ns}"
+    except OSError:
+        return executable
+
+
+def _extractor_fingerprint(path: Path) -> str:
+    """Keep cached extraction separate when optional local tools change."""
+    suffix = path.suffix.casefold()
+    parts = [_CACHE_VERSION, suffix]
+    if suffix in {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".pdf"}:
+        parts.append(_tool_fingerprint(_tesseract_executable()))
+    if suffix == ".pdf":
+        parts.append(_tool_fingerprint(shutil.which("pdftoppm") or ""))
+        try:
+            parts.append(f"pypdf:{importlib.metadata.version('pypdf')}")
+        except importlib.metadata.PackageNotFoundError:
+            parts.append("pypdf:unavailable")
+    return hashlib.sha256("\0".join(parts).encode("utf-8")).hexdigest()[:16]
+
+
 def _ocr_image(path: Path, timeout_seconds: int = 45) -> tuple[str, str | None]:
-    executable = os.environ.get("TESSERACT_CMD", "").strip() or shutil.which("tesseract") or ""
+    executable = _tesseract_executable()
     if not executable:
         return (
             "",
@@ -171,7 +202,12 @@ def extract_document(
             ("The evidence file is missing or unreadable.",),
         )
     digest = hashlib.sha256(content).hexdigest()
-    cache_path = Path(cache_dir) / f"{_CACHE_VERSION}-{digest}.json" if cache_dir else None
+    cache_fingerprint = _extractor_fingerprint(path)
+    cache_path = (
+        Path(cache_dir) / f"{_CACHE_VERSION}-{digest}-{cache_fingerprint}.json"
+        if cache_dir
+        else None
+    )
     if cache_path and cache_path.is_file():
         try:
             cached = json.loads(cache_path.read_text(encoding="utf-8"))

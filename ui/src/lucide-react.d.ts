@@ -9,14 +9,21 @@ declare module 'lucide-react' {
 
   export const Activity: Icon
   export const AlertTriangle: Icon
+  export const ArrowLeft: Icon
   export const ArrowDownToLine: Icon
+  export const CalendarClock: Icon
   export const Check: Icon
+  export const CheckCircle2: Icon
   export const ChevronDown: Icon
   export const ChevronRight: Icon
   export const CircleHelp: Icon
   export const Clock3: Icon
+  export const Database: Icon
+  export const Eye: Icon
+  export const EyeOff: Icon
   export const FileCheck2: Icon
   export const FileSearch: Icon
+  export const FileText: Icon
   export const Filter: Icon
   export const LoaderCircle: Icon
   export const LockKeyhole: Icon

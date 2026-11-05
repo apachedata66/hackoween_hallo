@@ -21,6 +21,15 @@ python code/main.py validate output.csv
 
 The runner stops without publishing a prediction file when evidence cannot support a safe answer. It writes a manual review summary to `evaluation/manual_review.md` in that case.
 
+Image evidence and scanned PDF pages require local OCR tools. Install Tesseract and make `tesseract` available on `PATH`; scanned PDFs also need `pdftoppm` to render pages. On Windows, set `TESSERACT_CMD` to the executable when Tesseract is not on `PATH`, for example:
+
+```powershell
+$env:TESSERACT_CMD = "C:\Program Files\Tesseract-OCR\tesseract.exe"
+python code/main.py run --out output.csv
+```
+
+If OCR is unavailable, image-based cases are held for manual review and no partial prediction file is written. OCR runs locally; the audit does not send evidence to an external service.
+
 To audit the public examples or one request:
 
 ```powershell
@@ -53,6 +62,8 @@ The reproducible public sample comparison, custom cases, known benchmark limits,
 
 - [`evaluation/evaluation_report.md`](evaluation/evaluation_report.md)
 - [`evaluation/usage_report.md`](evaluation/usage_report.md)
+- [`evaluation/interview_prep.md`](evaluation/interview_prep.md) for the
+  architecture walkthrough, demo sequence, measured results, and limitations.
 
 Regenerate the public sample evaluation report from the current evidence engine and custom cases with:
 

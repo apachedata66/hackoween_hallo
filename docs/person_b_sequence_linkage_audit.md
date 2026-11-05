@@ -74,27 +74,40 @@ case 12 policy disagreement and case 17 extra supported verification. No
 general evidence-backed rule was found to change those safely. Hidden full-set
 accuracy is unknown.
 
-## Full 518-request run on this branch
+## Full 518-request run and screenshot evidence
 
-Command:
+The 2026-11-05T00:52Z run processed all 518 requests and safely withheld its
+output because local OCR was unavailable for image evidence. It identified
+nine cases for review: `case_33`, `case_35`, `case_39`, `case_50`, `case_52`,
+`case_53`, `case_55`, `case_61`, and `case_63`. A manual visual inspection of
+the participant-facing screenshots found cutoff-eligible state evidence that
+the text-only run had not extracted:
 
-```powershell
-python code/main.py run --input "$env:GHOSTDATA_DATASET\deletion_requests.csv" --out .pytest-tmp/current-full.csv
-```
+| Cases | Source image | Visible state evidence | Cutoff |
+| --- | --- | --- | --- |
+| `case_33`, `case_52` | `evidence_23` | Export `export_1260` and its owner are visible in the export console. | 2026-06-18T12:00Z capture; both cutoffs are later. |
+| `case_35` | `evidence_09` | Search entry `search_428` and its identifying fields are visible. | 2026-09-01T06:00Z capture; cutoff is later. |
+| `case_39` | `evidence_14` | Connector `data_flow_1121` is selected; the console shows continuous sync and recent delivery activity. | 2026-08-07T08:00Z capture; cutoff is later. |
+| `case_50` | `evidence_19` | Analytics profile `analytics_7438` and its identifying fields are visible. | 2026-07-13T10:00Z capture; cutoff is later. |
+| `case_53` | `evidence_28` | Support conversation `support_1034`, customer identifiers, and shared order context are visible. | 2026-05-24T07:00Z capture; cutoff is later. |
+| `case_55` | `evidence_32` | Archive `backup_9287` is visible in the recovery console. | 2026-04-29T09:00Z capture; cutoff is later. |
+| `case_61` | `evidence_46` | Object storage shows `delivery_confirmation_19.pdf`; pre-cutoff `activity_4007` links that filename and `object_19` to the subject. | 2026-02-13T08:00Z capture and 08:07Z link; cutoff is 2026-02-14T10:00Z. |
+| `case_63` | `evidence_60` | Marketing profile `marketing_001` and its identifying fields are visible. | 2026-09-16T07:20Z capture; cutoff is later. |
 
-The engine processed all 518 requests but stopped safely without writing a
-prediction file because nine cases require manual review:
-`case_33`, `case_35`, `case_39`, `case_50`, `case_52`, `case_53`, `case_55`,
-`case_61`, and `case_63`. The participant-facing trace shows why these must not
-be forced to a verdict:
+The seven direct-ID screenshots (eight cases because `evidence_23` applies to
+two cases) independently show resource state and identity. For `case_61`, the
+screenshot proves the file is present in object storage; the time-bounded link
+event supplies the relationship between its filename, resource ID, and
+subject. The new generic filename-alias join uses that relationship only when
+an independent same-system file listing contains the alias by the cutoff.
+`LINK_RESOURCE_IDENTITY` alone still never creates a resource observation.
 
-| Cases | Cutoff finding | Safe disposition |
-| --- | --- | --- |
-| `case_33`, `case_35`, `case_39`, `case_50`, `case_52`, `case_53`, `case_55` | Each has an identity-linked activity row, but its matching independent record is from `evidence_01` (captured 2026-09-15 11:59:39Z) or `evidence_02` (captured 2026-09-17 12:00:00Z), after that case's `audit_at`. Embedded record times precede capture in some files, but the evidence item itself was captured after the cutoff. | Exclude the observation under the temporal rule; the activity link alone cannot prove the record state. Keep for manual review. |
-| `case_61`, `case_63` | Identity-linked activity rows `activity_4007` and `activity_4008` name resources, but the evidence index has no independent record candidate for either resource. | Treat the activity as relationship evidence only; do not infer presence or state. Keep for manual review. |
-
-Thus the current code cannot produce a complete current-run `output.csv` for
-all 518 cases. The checked-in `output.csv` is a prior artifact; its structural
-validation is separate from recomputing predictions or proving their
-accuracy. Full-set gold labels are unavailable, so full-set accuracy cannot be
-measured from the supplied files. Do not fill these nine rows with guesses.
+The later SQL snapshots `evidence_01` and `evidence_02` remain excluded for
+these earlier cutoffs. They are not needed to establish the screenshot states.
+The current machine has no Tesseract executable, so the new image records and
+flow state parser could not yet be exercised against the real screenshots.
+Install/configure local Tesseract, rerun the full dataset, review every result,
+and validate the exact 518-row file before submission. The checked-in
+`output.csv` is from the earlier 2026-11-04 run and predates the link-only
+safety fix; it is stale and must not be submitted. Full-set gold labels are
+unavailable, so full-set accuracy cannot be measured from supplied files.

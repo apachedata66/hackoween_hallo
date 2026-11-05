@@ -25,4 +25,4 @@ npm run dev
 
 Vite proxies API calls to FastAPI. Open the address printed by Vite. Use `npm run build` to create the static bundle at `ui/dist/`.
 
-Runs show actual CLI progress. A failed or manual-review-required run cannot be exported. Case identifiers are masked by default. The evidence drawer enforces the case cutoff, masks identifiers in excerpts, and labels activity records as claims.
+Runs show actual CLI progress. A failed or manual-review-required run cannot be exported. Case identifiers are masked by default. The evidence drawer enforces the case cutoff, masks identifiers in excerpts, and labels activity records as claims. When a cited image is available by the case cutoff, the reviewer can explicitly open the original image; the disclosure warns that it may contain direct identifiers. The local API serves that image only for the cited case and evidence ID.

@@ -3,14 +3,18 @@
 ## Run
 
 - **command**: python code/main.py run
-- **completed_at_utc**: 2026-11-04T22:39:22.431599Z
+- **completed_at_utc**: 2026-11-05T01:26:48.054661Z
 - **dataset**: participant-facing dataset/
-- **duration_seconds**: 44.67
+- **duration_seconds**: 56.02
 - **model_calls**: 0
 - **output_file**: output.csv
-- **output_sha256**: 327cc232c52174a580677f5887a44a277c107c96e4f31f3863e23e7103e8c45d
+- **output_sha256**: 8b7d3ccdfca53a072362ada23f3567c14719aacc13b72705dcf0423a7d5741a4
 - **requests**: 518
-- **started_at_utc**: 2026-11-04T22:38:37.754377Z
+- **started_at_utc**: 2026-11-05T01:25:52.036674Z
+
+The run used local Tesseract OCR version **5.5.3.20260724** (`eng` language)
+for screenshot evidence. OCR ran on this machine; no external vision or language
+model provider was contacted.
 
 ## Model calls
 

@@ -216,6 +216,7 @@ def _execute(run: AuditRun) -> None:
                     run.warnings.append(_mask(cleaned)[:300])
                 elif cleaned.startswith("Stopped safely:"):
                     run.stage = "Evidence review required"
+                    run.warnings.append(_mask(cleaned)[:300])
 
         error_reader = threading.Thread(target=read_stderr, daemon=True)
         error_reader.start()
@@ -392,11 +393,18 @@ def get_evidence(run_id: str, case_id: str, evidence_id: str) -> dict[str, Any]:
             "captured_at": captured,
             "available_at_cutoff": _at_or_before(captured, cutoff),
             "excerpt": "",
+            "preview_url": None,
         }
         if not captured or not _at_or_before(captured, cutoff):
             return response
         candidate = (root / manifest.get("file_path", "")).resolve()
         if not candidate.is_relative_to(root) or not candidate.is_file():
+            return response
+        if candidate.suffix.casefold() in {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}:
+            response["kind"] = "Image evidence"
+            response["preview_url"] = (
+                f"/api/runs/{run_id}/cases/{case_id}/evidence/{evidence_id}/content"
+            )
             return response
         text = ""
         try:
@@ -454,6 +462,53 @@ def get_evidence(run_id: str, case_id: str, evidence_id: str) -> dict[str, Any]:
                     else "",
                 }
     raise HTTPException(404, "Evidence source was not found in the participant dataset.")
+
+
+@app.get("/api/runs/{run_id}/cases/{case_id}/evidence/{evidence_id}/content")
+def get_evidence_content(run_id: str, case_id: str, evidence_id: str) -> Response:
+    """Serve a cited raster image only when it was available at this case's cutoff."""
+    run = _require_complete(run_id)
+    request = run.requests.get(case_id)
+    row = next((item for item in run.rows if item["case_id"] == case_id), None)
+    if not request or not row:
+        raise HTTPException(404, "Case not found.")
+    steps = json.loads(row["steps_json"])
+    if not any(step["evidence_id"] == evidence_id for step in steps):
+        raise HTTPException(404, "This evidence reference is not part of the selected case.")
+
+    root = dataset_dir().resolve()
+    manifest_rows = _read_csv(root / "evidence_files.csv")
+    manifest = next((item for item in manifest_rows if item.get("file_id") == evidence_id), None)
+    if not manifest:
+        raise HTTPException(404, "Image evidence was not found in the participant manifest.")
+    if not _at_or_before(manifest.get("captured_at", ""), request.get("audit_at", "")):
+        raise HTTPException(404, "Image evidence was captured after this case's audit cutoff.")
+
+    candidate = (root / manifest.get("file_path", "")).resolve()
+    if not candidate.is_relative_to(root) or not candidate.is_file():
+        raise HTTPException(404, "Image evidence was not found in the participant dataset.")
+    media_types = {
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".bmp": "image/bmp",
+        ".tif": "image/tiff",
+        ".tiff": "image/tiff",
+    }
+    media_type = media_types.get(candidate.suffix.casefold())
+    if not media_type:
+        raise HTTPException(415, "This evidence item is not a supported raster image.")
+    if candidate.stat().st_size > 15_000_000:
+        raise HTTPException(413, "This image is too large to preview in the local review app.")
+    try:
+        content = candidate.read_bytes()
+    except OSError as exc:
+        raise HTTPException(404, "Image evidence could not be read.") from exc
+    return Response(
+        content,
+        media_type=media_type,
+        headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"},
+    )
 
 
 @app.get("/api/runs/{run_id}/output")
