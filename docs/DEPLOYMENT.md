@@ -4,8 +4,8 @@
 
 The Vercel project serves the React/Vite client as a static site. The repository-root `vercel.json` explicitly selects Vite, installs the `ui/` dependencies, builds the app, and serves `ui/dist`. It also routes direct visits to `/workspace` back to the single page application.
 
-1. Import this GitHub repository into Vercel. Set **Root Directory** to `.` (the repository root) and **Framework Preset** to **Vite**.
-2. Leave the install, build, and output settings controlled by `vercel.json`: `npm --prefix ui ci`, `npm --prefix ui run build`, and `ui/dist`.
+1. Keep Vercel's **Root Directory** at `.` (the repository root) and **Framework Preset** at **Vite** to use the root `vercel.json`: `npm --prefix ui ci`, `npm --prefix ui run build`, and `ui/dist`.
+2. If the Vercel project uses `ui` as its **Root Directory**, use `ui/vercel.json` instead: it runs `npm ci` and `npm run build` from `ui/`, then serves `dist`. Do not run `npm --prefix ui ci` from inside `ui/`; that points npm at `ui/ui`, where no lockfile exists.
 3. Host the FastAPI audit service separately on a persistent Python web service. This app launches the CLI as a child process, tracks active run progress in process memory, and needs the participant dataset at runtime. Vercel supports FastAPI, but this current process and state model needs a persistent API host; selecting FastAPI as the Vercel project preset would also deploy the API in place of this React interface.
 4. Add `VITE_API_BASE_URL` in Vercel Project Settings → Environment Variables. Set it to the HTTPS origin of the audit API, for example `https://audit-api.example.com`, with no trailing slash.
 5. Set `GHOSTDATA_DATASET` on the API service to the participant dataset directory. Redeploy the frontend after changing `VITE_API_BASE_URL`; Vite embeds it during the build, and it is not a secret.
