@@ -1665,3 +1665,28 @@ branch=codex/person-b-linkage-audit
 repo_root=C:\Users\WIN10\OneDrive\Desktop\halloween\hackoween_personb_linkage
 worktree=C:\Users\WIN10\OneDrive\Desktop\halloween\hackoween_personb_linkage
 parent_agent=none
+
+
+## [2026-11-05T05:47:27Z] Build React landing page and publish integration
+
+User Prompt (verbatim, secrets redacted):
+continue and now furnish the front end and i think we should include a landing page which should not look like ai slop and vibe coded obviousely and also commit the entire codebase to github and merge all the things and merge that to main because we have to submit the project now and also design the entire github repo such that we get the maximum score from the agent and also all the requirements which they asked to sub,it in problem statemned document they mjust be there and landing page and the the dasboard or actual site must sync and design the landing page such a way that it look visually stunning and not just a another ai slop and also at the end  run the server locally and we are thinking it to deploy on vercel so setup that too
+
+Agent Response Summary:
+Built a React landing page connected to the audit workspace, retaining the reference's warm paper palette, restrained slate-teal brand colour, IBM Plex type, and thin borders. Added Vercel static hosting configuration, separate API-origin/CORS setup, and deployment notes; merged Person B's ambiguous-trace identity safeguard. Regenerated the 518-row output with Tesseract 5.5.3, validated it, refreshed the evaluation and usage reports, built code.zip, and verified the local service. Pushed integration and fast-forwarded main on GitHub.
+
+Actions:
+* Built the Vite React bundle; `npm run build` passed.
+* Ran the full dataset output command with Tesseract 5.5.3; 518 rows were written and validated.
+* Ran the OCR-enabled public benchmark: 29/32 predictions, 25.00% exact sequence, 90.62% status accuracy, 96.27% step precision, 80.31% step recall, and 87.57% step F1.
+* Rebuilt and inspected `code.zip`; it includes the required reports, deployment notes, and Vercel config, while excluding dataset and local diagnostics.
+* Verified local API health (`ready=true`, 518 requests, 32 samples) and HTTP 200 for `/` and `/workspace` at `http://127.0.0.1:18080`.
+* Committed `1bf087b` and merge commit `befe3d5`; pushed `codex/integration` and `main` to `origin`.
+
+Context:
+tool=Codex desktop
+model=GPT-6
+branch=codex/integration
+repo_root=C:\Users\Asus\Desktop\hallowen
+worktree=main
+parent_agent=none
