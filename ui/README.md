@@ -2,6 +2,8 @@
 
 The local interface uses React, TypeScript, and Vite. FastAPI serves the production build and runs the existing CLI as a background process. The browser does not implement identity resolution, policy, or audit decisions.
 
+The root URL is an editorial project landing page. The **Open audit workspace** action and `/workspace` route lead to the same React review interface and same FastAPI API; they do not use a separate demo implementation.
+
 ## Run the built interface
 
 From the repository root, install the optional Python dependencies and build the frontend once:
@@ -24,5 +26,9 @@ npm run dev
 ```
 
 Vite proxies API calls to FastAPI. Open the address printed by Vite. Use `npm run build` to create the static bundle at `ui/dist/`.
+
+## Vercel frontend
+
+`vercel.json` builds and hosts the static React client. Configure `VITE_API_BASE_URL` as the HTTPS origin for a separately hosted FastAPI service. Add the deployed site origins to that service's `GHOSTDATA_CORS_ORIGINS`. The current subprocess and in-memory run implementation must stay on a persistent API host; it is not a Vercel serverless function. See [`../docs/DEPLOYMENT.md`](../docs/DEPLOYMENT.md).
 
 Runs show actual CLI progress. A failed or manual-review-required run cannot be exported. Case identifiers are masked by default. The evidence drawer enforces the case cutoff, masks identifiers in excerpts, and labels activity records as claims. When a cited image is available by the case cutoff, the reviewer can explicitly open the original image; the disclosure warns that it may contain direct identifiers. The local API serves that image only for the cited case and evidence ID.

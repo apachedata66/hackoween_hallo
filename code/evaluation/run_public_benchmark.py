@@ -53,13 +53,26 @@ def main() -> int:
         )
     else:
         failures = "All public sample cases produced evidence-supported predictions."
-    failures += (
-        " One OCR-enabled disagreement remains: sample case_07 includes object_19 "
-        "as a SUPPORT_ATTACHMENT linked by activity_4007 and independently listed "
-        "in evidence_46 before the audit cutoff. The public gold omits it, so its "
-        "finding, remediation, and verification count as extra steps. The engine "
-        "keeps the evidence-backed record rather than adding a case-specific exception."
+    image_46 = next(
+        (item for item in engine.evidence_index.extractions if item.evidence_id == "evidence_46"),
+        None,
     )
+    if image_46 is not None and image_46.method == "tesseract_ocr":
+        failures += (
+            " This OCR-enabled run includes one public-gold disagreement: sample "
+            "case_07 includes object_19 as a SUPPORT_ATTACHMENT linked by "
+            "activity_4007 and independently listed in evidence_46 before the "
+            "audit cutoff. The public gold omits it, so its finding, remediation, "
+            "and verification count as extra steps. The engine keeps the "
+            "evidence-backed record rather than adding a case-specific exception."
+        )
+    else:
+        method = image_46.method if image_46 is not None else "not extracted"
+        failures += (
+            " Screenshot OCR was unavailable for evidence_46 in this run "
+            f"(extractor method: {method}); the resulting metrics are not directly "
+            "comparable to the prior OCR-enabled baseline."
+        )
 
     improvements = (
         "Corrected evaluation accounting so missing predictions count as false "
@@ -73,13 +86,25 @@ def main() -> int:
         "filename-alias join for independently captured same-system listings, "
         "plus explicit continuous-sync state extraction for flow documents. "
         "Added extractor-aware document caching so OCR results are refreshed when "
-        "Tesseract becomes available after an earlier no-OCR run. The final full "
-        "dataset run used local Tesseract 5.5.3 and recovered the nine previously "
-        "unlinked screenshot cases. Also stopped emitting a future disable check "
+        "Tesseract becomes available after an earlier no-OCR run. The recorded "
+        "full-dataset OCR run used local Tesseract 5.5.3 and recovered the nine "
+        "previously unlinked screenshot cases. Also stopped emitting a future disable check "
         "for an already inactive flow in an incomplete case, because it is not "
         "part of the proposed remediation plan. That evidence-safe planner fix "
         "corrected sample case_15 and raised exact sequence accuracy from 18.75% "
-        "to 21.88%; a custom regression covers the behavior."
+        "to 21.88%; a custom regression covers the behavior. The planner now "
+        "also omits a future absence check when the only negative state evidence "
+        "predates the deletion request and no later state observation exists. "
+        "This removes the unsupported account_6523 check in public case_17 and "
+        "raises the OCR-enabled sample sequence score to 25.00% (8 of 32). "
+        "JSON records now inherit recognized service/system context from the "
+        "evidence manifest, and literal null-like identifier placeholders are "
+        "not treated as exposed PII. A timestamp-only request linker was tested "
+        "and removed after it attached nearby unrelated activity to case_11; "
+        "time proximity alone is not used to assign a resource to a person. "
+        "These parser corrections did not change the public exact-sequence score "
+        "because the remaining unlinked sample resources lack a reliable subject "
+        "relationship in the supplied evidence."
     )
     with tempfile.TemporaryDirectory(prefix=".public-benchmark-", dir=ROOT / "evaluation") as work:
         prediction_path = Path(work) / "predictions.csv"

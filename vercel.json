@@ -1,0 +1,10 @@
+{
+  "buildCommand": "npm --prefix ui ci && npm --prefix ui run build",
+  "outputDirectory": "ui/dist",
+  "rewrites": [
+    {
+      "source": "/workspace",
+      "destination": "/"
+    }
+  ]
+}

@@ -423,6 +423,7 @@ class EvidenceIndex:
                             path,
                             evidence_id=entry.file_id,
                             captured_at=entry.captured_at,
+                            system_hint=_document_system(entry, ""),
                         )
                     )
                 elif suffix == ".log":

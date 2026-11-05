@@ -237,10 +237,15 @@ def _run(args: argparse.Namespace) -> int:
         except ValueError:
             output_label = str(output.resolve())
         output_hash = hashlib.sha256(output.read_bytes()).hexdigest()
+        command = "python code/main.py run"
+        if args.no_llm:
+            command += " --no-llm"
+        if args.out:
+            command += f" --out {args.out}"
         usage_report = tracker.write_usage_report(
             Path(__file__).resolve().parents[2] / "evaluation" / "usage_report.md",
             run={
-                "command": "python code/main.py run",
+                "command": command,
                 "completed_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
                 "duration_seconds": f"{time.monotonic() - started:.2f}",
                 "requests": len(results),

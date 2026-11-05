@@ -7,23 +7,23 @@ Metrics compare public sample harness predictions with public gold. Missing pred
 ```text
 Cases: 32 gold, 29 scored, 3 missing, 0 extra
 Status accuracy:      0.9062
-Step precision:       0.9568
+Step precision:       0.9627
 Step recall:          0.8031
-Step F1:              0.8732
-Sequence accuracy:    0.2188
+Step F1:              0.8757
+Sequence accuracy:    0.2500
 Field accuracy:
-  phase          0.7959
-  system_id      0.5714
-  resource_id    0.5714
-  operation      0.6071
-  state          0.6224
-  evidence_id    0.8010
+  phase          0.8000
+  system_id      0.5846
+  resource_id    0.5846
+  operation      0.6205
+  state          0.6359
+  evidence_id    0.8051
 Confusion (rows = gold, cols = predicted):
   gold\pred         COMPLETE       INCOMPLETE   NOT_APPLICABLE
   COMPLETE                 7                0                0
   INCOMPLETE               0               22                0
   NOT_APPLICABLE               0                0                0
-Failures: 25
+Failures: 24
   case_01: status MISSING (gold COMPLETE), steps 0 (gold 1)
     missing: VERIFICATION/account_service/account_001/VERIFY_RECORD_ABSENT/ABSENT/evidence_54
   case_02: status MISSING (gold COMPLETE), steps 0 (gold 1)
@@ -54,8 +54,6 @@ Failures: 25
     extra:   FINDING/analytics_platform/analytics_9914/REPORT_EXPOSED_PII/PRESENT/evidence_01
     extra:   REMEDIATION/analytics_platform/analytics_9914/ANONYMIZE_RECORD/ANONYMIZED/
     extra:   VERIFICATION/analytics_platform/analytics_9914/VERIFY_RECORD_ANONYMIZED/ANONYMIZED/
-  case_17: status INCOMPLETE (gold INCOMPLETE), steps 6 (gold 5)
-    extra:   VERIFICATION/account_service/account_6523/VERIFY_RECORD_ABSENT/ABSENT/
   case_18: status INCOMPLETE (gold INCOMPLETE), steps 12 (gold 14)
     missing: VERIFICATION/account_service/account_5521/VERIFY_RECORD_ABSENT/ABSENT/
     missing: VERIFICATION/security_service/audit_record_6645/VERIFY_RECORD_PRESENT/PRESENT/
@@ -81,7 +79,10 @@ Failures: 25
   case_27: status COMPLETE (gold COMPLETE), steps 4 (gold 6)
     missing: VERIFICATION/account_service/account_3866/VERIFY_RECORD_ABSENT/ABSENT/evidence_92
     missing: VERIFICATION/analytics_platform/analytics_4574/VERIFY_RECORD_ANONYMIZED/ANONYMIZED/evidence_92
-  ... 5 more (raise --show)
+  case_28: status COMPLETE (gold COMPLETE), steps 4 (gold 6)
+    missing: VERIFICATION/account_service/account_5482/VERIFY_RECORD_ABSENT/ABSENT/evidence_92
+    missing: VERIFICATION/analytics_platform/analytics_6077/VERIFY_RECORD_ANONYMIZED/ANONYMIZED/evidence_92
+  ... 4 more (raise --show)
 ```
 
 ## Custom evaluation cases
@@ -110,11 +111,11 @@ Ran 17 hand-built cases; 17 passed.
 
 ## Failures found
 
-The evidence engine withheld 3 public sample cases for manual review (case_01: no in-scope resources were supplied, so this case cannot be marked COMPLETE; case_02: no in-scope resources were supplied, so this case cannot be marked COMPLETE; case_04: no in-scope resources were supplied, so this case cannot be marked COMPLETE). Their public gold steps name resources not linked to the resolved identities by cutoff-eligible participant evidence. Do not infer resource IDs from case numbering. One OCR-enabled disagreement remains: sample case_07 includes object_19 as a SUPPORT_ATTACHMENT linked by activity_4007 and independently listed in evidence_46 before the audit cutoff. The public gold omits it, so its finding, remediation, and verification count as extra steps. The engine keeps the evidence-backed record rather than adding a case-specific exception.
+The evidence engine withheld 3 public sample cases for manual review (case_01: no in-scope resources were supplied, so this case cannot be marked COMPLETE; case_02: no in-scope resources were supplied, so this case cannot be marked COMPLETE; case_04: no in-scope resources were supplied, so this case cannot be marked COMPLETE). Their public gold steps name resources not linked to the resolved identities by cutoff-eligible participant evidence. Do not infer resource IDs from case numbering. This OCR-enabled run includes one public-gold disagreement: sample case_07 includes object_19 as a SUPPORT_ATTACHMENT linked by activity_4007 and independently listed in evidence_46 before the audit cutoff. The public gold omits it, so its finding, remediation, and verification count as extra steps. The engine keeps the evidence-backed record rather than adding a case-specific exception.
 
 ## Improvements made
 
-Corrected evaluation accounting so missing predictions count as false negatives for step recall and field accuracy, while extra-case steps count as false positives. The earlier step recall/F1 (0.8201/0.8807) omitted the expected steps for missing cases; the corrected values are reported below. Added regression coverage and a one-command benchmark harness. Also stopped treating identity-link events alone as proof that a resource is still present; independent resource observations are required for state findings. Added a cutoff-bounded filename-alias join for independently captured same-system listings, plus explicit continuous-sync state extraction for flow documents. Added extractor-aware document caching so OCR results are refreshed when Tesseract becomes available after an earlier no-OCR run. The final full dataset run used local Tesseract 5.5.3 and recovered the nine previously unlinked screenshot cases. Also stopped emitting a future disable check for an already inactive flow in an incomplete case, because it is not part of the proposed remediation plan. That evidence-safe planner fix corrected sample case_15 and raised exact sequence accuracy from 18.75% to 21.88%; a custom regression covers the behavior.
+Corrected evaluation accounting so missing predictions count as false negatives for step recall and field accuracy, while extra-case steps count as false positives. The earlier step recall/F1 (0.8201/0.8807) omitted the expected steps for missing cases; the corrected values are reported below. Added regression coverage and a one-command benchmark harness. Also stopped treating identity-link events alone as proof that a resource is still present; independent resource observations are required for state findings. Added a cutoff-bounded filename-alias join for independently captured same-system listings, plus explicit continuous-sync state extraction for flow documents. Added extractor-aware document caching so OCR results are refreshed when Tesseract becomes available after an earlier no-OCR run. The recorded full-dataset OCR run used local Tesseract 5.5.3 and recovered the nine previously unlinked screenshot cases. Also stopped emitting a future disable check for an already inactive flow in an incomplete case, because it is not part of the proposed remediation plan. That evidence-safe planner fix corrected sample case_15 and raised exact sequence accuracy from 18.75% to 21.88%; a custom regression covers the behavior. The planner now also omits a future absence check when the only negative state evidence predates the deletion request and no later state observation exists. This removes the unsupported account_6523 check in public case_17 and raises the OCR-enabled sample sequence score to 25.00% (8 of 32). JSON records now inherit recognized service/system context from the evidence manifest, and literal null-like identifier placeholders are not treated as exposed PII. A timestamp-only request linker was tested and removed after it attached nearby unrelated activity to case_11; time proximity alone is not used to assign a resource to a person. These parser corrections did not change the public exact-sequence score because the remaining unlinked sample resources lack a reliable subject relationship in the supplied evidence.
 
 ## Run metadata
 

@@ -6,20 +6,29 @@ import {
   AlertTriangle,
   ArrowDownToLine,
   ArrowLeft,
+  ArrowRight,
+  ArrowUpRight,
+  BookOpen,
   CalendarClock,
   CheckCircle2,
   ChevronRight,
+  CircleCheck,
   Clock3,
+  ClipboardCheck,
   Database,
   Eye,
   EyeOff,
   FileText,
+  Fingerprint,
+  GitBranch,
   CircleHelp,
   LoaderCircle,
   LockKeyhole,
   Menu,
+  Network,
   Search,
   ShieldCheck,
+  Waypoints,
   X,
 } from 'lucide-react'
 
@@ -109,6 +118,13 @@ type Evidence = {
 type CasePage = { cases: CaseSummary[]; total: number }
 type SearchPage = { cases: CaseSummary[] }
 
+const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/+$/, '')
+
+function apiPath(path: string): string {
+  if (/^https?:\/\//i.test(path)) return path
+  return `${API_BASE}${path}`
+}
+
 const STATUS: Record<DeletionStatus, { label: string; Icon: IconComponent; explanation: string }> = {
   COMPLETE: {
     label: 'Complete',
@@ -146,7 +162,7 @@ const OPERATION_LABELS: Record<string, string> = {
 }
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, {
+  const response = await fetch(apiPath(path), {
     ...init,
     headers: {
       'Content-Type': 'application/json',
@@ -194,6 +210,9 @@ function StatusChip({ status }: { status: DeletionStatus }) {
 }
 
 function App() {
+  const [screen, setScreen] = useState<'landing' | 'workspace'>(() =>
+    window.location.pathname === '/workspace' ? 'workspace' : 'landing',
+  )
   const [health, setHealth] = useState<Health | null>(null)
   const [healthError, setHealthError] = useState('')
   const [run, setRun] = useState<AuditRun | null>(null)
@@ -216,6 +235,16 @@ function App() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [toast, setToast] = useState('')
   const drawerRef = useRef<HTMLDialogElement>(null)
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setScreen(window.location.pathname === '/workspace' ? 'workspace' : 'landing')
+      setSelectedCaseId('')
+      setSelectedEvidenceId('')
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -366,6 +395,7 @@ function App() {
   async function startRun(mode: 'full' | 'samples') {
     if (activeRun || starting) return
     setStarting(true)
+    navigate('workspace')
     setRunError('')
     setCases([])
     setSearchCases(null)
@@ -423,16 +453,36 @@ function App() {
     event.preventDefault()
   }
 
+  function navigate(next: 'landing' | 'workspace') {
+    const path = next === 'workspace' ? '/workspace' : '/'
+    if (window.location.pathname !== path) window.history.pushState({}, '', path)
+    setScreen(next)
+    if (next === 'landing') {
+      setSelectedCaseId('')
+      setSelectedEvidenceId('')
+    }
+  }
+
   const currentPage = selectedCaseId ? 'case' : cases.length || run?.state === 'complete' ? 'cases' : 'overview'
+
+  if (screen === 'landing') {
+    return <LandingPage
+      health={health}
+      healthError={healthError}
+      onOpenWorkspace={() => navigate('workspace')}
+      onStartSample={() => { navigate('workspace'); void startRun('samples') }}
+    />
+  }
 
   return (
     <div className="app-shell">
       {menuOpen && <button className="scrim" aria-label="Close navigation" onClick={() => setMenuOpen(false)} />}
       <aside className={`sidebar${menuOpen ? ' sidebar-open' : ''}`} aria-label="Main navigation">
-        <div className="brand">
+        <button className="brand brand-button" onClick={() => navigate('landing')} aria-label="Ghost Data home">
           <div className="brand-mark"><ShieldCheck size={19} strokeWidth={1.8} aria-hidden="true" /></div>
           <div><strong>Ghost Data</strong><span>Deletion audit</span></div>
-        </div>
+        </button>
+        <button className="nav-item home-nav" onClick={() => navigate('landing')}><ArrowLeft size={15} aria-hidden="true" /> Project overview</button>
         <div className="side-label">WORKSPACE</div>
         <button className={`nav-item${currentPage === 'overview' ? ' active' : ''}`} onClick={() => { returnToCases(); setMenuOpen(false) }}>
           <Activity size={16} aria-hidden="true" /> Overview
@@ -446,13 +496,13 @@ function App() {
           <span className="dataset-dot" aria-hidden="true" />
           <div className="dataset-meta">
             <b title={health?.dataset_label}>{health?.dataset_label || 'Checking dataset'}</b>
-            <span>{health?.ready ? `${health.request_count} requests · local` : 'Readiness check'}</span>
+            <span>{health?.ready ? `${health.request_count} requests · ${API_BASE ? 'connected' : 'local'}` : 'Readiness check'}</span>
           </div>
-          <span className="local-tag"><LockKeyhole size={12} aria-hidden="true" /> LOCAL</span>
+          <span className="local-tag"><LockKeyhole size={12} aria-hidden="true" /> {API_BASE ? 'API' : 'LOCAL'}</span>
         </div>
         <div className="side-foot">
           <LockKeyhole size={15} aria-hidden="true" />
-          <span>Evidence stays on this machine. The audit prepares recommendations; it never changes source records.</span>
+          <span>{API_BASE ? 'The configured audit service handles evidence. Recommendations never change source records.' : 'Evidence stays on this machine. Recommendations never change source records.'}</span>
         </div>
       </aside>
 
@@ -463,7 +513,7 @@ function App() {
           </button>
           <div className="breadcrumbs"><span>Ghost Data</span><ChevronRight size={13} aria-hidden="true" /><strong>{currentPage === 'case' ? selectedCaseId : currentPage === 'cases' ? 'Case register' : 'Overview'}</strong></div>
           <div className="top-right">
-            <span className="local-indicator"><span aria-hidden="true" />Local audit</span>
+            <span className="local-indicator"><span aria-hidden="true" />{API_BASE ? 'Audit service' : 'Local audit'}</span>
             <button className="help-button" aria-label="How the audit works" aria-expanded={helpOpen} onClick={() => setHelpOpen((value) => !value)}>
               <CircleHelp size={17} aria-hidden="true" />
             </button>
@@ -488,7 +538,7 @@ function App() {
                   <h1>{currentPage === 'cases' ? 'Case register' : 'Deletion audit workspace'}</h1>
                   <p className="muted">Check what remains at each request’s audit time, and review the evidence behind every step.</p>
                 </div>
-                {run?.export_ready && <a className="quiet-button" href={`/api/runs/${run.run_id}/output`}><ArrowDownToLine size={14} aria-hidden="true" /> Download CSV</a>}
+                {run?.export_ready && <a className="quiet-button" href={apiPath(`/api/runs/${run.run_id}/output`)}><ArrowDownToLine size={14} aria-hidden="true" /> Download CSV</a>}
               </div>
 
               {helpOpen && <div className="panel help-panel" role="region" aria-label="How the audit works">
@@ -525,7 +575,7 @@ function App() {
 
               <RunProgress run={run} loadingCases={casesLoading} />
 
-              {run?.state === 'complete' && <RunSummary run={run} onDownload={() => window.location.assign(`/api/runs/${run.run_id}/output`)} />}
+              {run?.state === 'complete' && <RunSummary run={run} onDownload={() => window.location.assign(apiPath(`/api/runs/${run.run_id}/output`))} />}
 
               {run?.state === 'review_required' && <div className="panel review-required-panel">
                 <div className="review-required-heading"><AlertTriangle size={17} /><strong>Evidence review needed</strong></div>
@@ -566,6 +616,102 @@ function App() {
       {toast && <div className="toast" role="status" aria-live="polite"><CircleHelp size={15} aria-hidden="true" />{toast}<button aria-label="Dismiss message" onClick={() => setToast('')}><X size={14} /></button></div>}
     </div>
   )
+}
+
+function LandingPage({
+  health,
+  healthError,
+  onOpenWorkspace,
+  onStartSample,
+}: {
+  health: Health | null
+  healthError: string
+  onOpenWorkspace: () => void
+  onStartSample: () => void
+}) {
+  const localService = !API_BASE
+
+  return <div className="landing-shell">
+    <header className="landing-nav">
+      <a className="landing-brand" href="/" aria-label="Ghost Data home">
+        <span className="landing-brand-mark"><ShieldCheck size={19} strokeWidth={1.8} aria-hidden="true" /></span>
+        <span><strong>Ghost Data</strong><small>Deletion audit</small></span>
+      </a>
+      <nav aria-label="Project navigation">
+        <a href="#method">Method</a>
+        <a href="#deliverable">What it produces</a>
+      </nav>
+      <button className="landing-nav-action" onClick={onOpenWorkspace}>Open workspace <ArrowUpRight size={14} aria-hidden="true" /></button>
+    </header>
+
+    <main>
+      <section className="landing-hero">
+        <div className="hero-copy">
+          <div className="landing-eyebrow"><span className="eyebrow-rule" /> PRIVACY OPERATIONS <span>·</span> EVIDENCE REVIEW</div>
+          <h1>A deletion request is a claim.<br /><em>The record is the evidence.</em></h1>
+          <p className="hero-intro">Ghost Data traces current and historical identifiers across systems, rebuilds their state at the audit cutoff, and turns the evidence into a reviewable answer.</p>
+          <div className="hero-actions">
+            <button className="primary-button hero-primary" onClick={onOpenWorkspace}>Open audit workspace <ArrowRight size={15} aria-hidden="true" /></button>
+            <button className="hero-text-action" onClick={onStartSample}>Run the 32 public examples <ArrowRight size={14} aria-hidden="true" /></button>
+          </div>
+          <div className="service-note" role="status">
+            <span className={`service-indicator ${health?.ready ? 'is-ready' : ''}`} />
+            <span>{health?.ready ? `${health.request_count} requests connected` : healthError ? (localService ? 'Start the local audit service to connect the dataset' : 'The configured audit service is not reachable') : 'Checking the audit service'}</span>
+            <span className="service-divider">·</span>
+            <span>{localService ? 'Local-first run' : 'Connected audit service'}</span>
+          </div>
+        </div>
+
+        <div className="hero-visual" aria-label="Audit workflow diagram">
+          <div className="visual-caption"><span>THE AUDIT RECORD</span><span>01 — 04</span></div>
+          <div className="record-sheet">
+            <div className="record-sheet-head">
+              <div><span className="field-label">SUBJECT LINKAGE</span><strong>One identity, many traces</strong></div>
+              <Fingerprint size={20} strokeWidth={1.5} aria-hidden="true" />
+            </div>
+            <div className="identity-chain">
+              <div className="identity-node"><span className="node-kicker">CURRENT</span><span className="mono">user_id · email · phone</span></div>
+              <div className="chain-connector"><GitBranch size={13} aria-hidden="true" /></div>
+              <div className="identity-node muted-node"><span className="node-kicker">HISTORICAL</span><span className="mono">prior identifiers</span></div>
+            </div>
+            <div className="record-rule" />
+            <div className="evidence-lanes">
+              <div className="evidence-lane"><span className="lane-index">01</span><Database size={15} aria-hidden="true" /><span>Primary & replica stores</span><span className="lane-mark" /></div>
+              <div className="evidence-lane"><span className="lane-index">02</span><FileText size={15} aria-hidden="true" /><span>Logs, support & exports</span><span className="lane-mark" /></div>
+              <div className="evidence-lane"><span className="lane-index">03</span><Network size={15} aria-hidden="true" /><span>Sync & restore paths</span><span className="lane-mark" /></div>
+            </div>
+            <div className="cutoff-stamp"><Clock3 size={14} aria-hidden="true" /><span>RECONSTRUCTED AT <b className="mono">audit_at</b></span><span className="stamp-line" /></div>
+            <div className="record-sheet-foot"><span>FINDINGS</span><ChevronRight size={12} /><span>REMEDIATION</span><ChevronRight size={12} /><span>VERIFICATION</span></div>
+          </div>
+          <div className="visual-footnote"><span className="footnote-mark" /> Every conclusion points back to a participant-visible source.</div>
+        </div>
+
+        <div className="hero-baseline"><span>GHOST DATA STILL EXISTS</span><span>DELETION AUDIT / 2026</span></div>
+      </section>
+
+      <section className="landing-method" id="method">
+        <div className="method-heading"><div><div className="landing-eyebrow"><span className="eyebrow-rule" /> A CAREFUL REVIEW, END TO END</div><h2>What happened is more useful<br />than what the workflow said.</h2></div><p>Statuses can say “complete” while replicas, search indexes, backups, or active sync jobs tell a different story.</p></div>
+        <div className="method-grid">
+          <article className="method-item"><span className="method-number">01</span><div className="method-icon"><Fingerprint size={17} aria-hidden="true" /></div><h3>Resolve the person</h3><p>Follow current and historical identifiers before searching across the evidence set.</p><span className="method-foot">IDENTITY · HISTORY · ALIASES</span></article>
+          <article className="method-item"><span className="method-number">02</span><div className="method-icon"><Waypoints size={17} aria-hidden="true" /></div><h3>Rebuild the state</h3><p>Compare records, replicas, activity and evidence using only what existed by the audit cutoff.</p><span className="method-foot">STORES · FLOWS · RESTORES</span></article>
+          <article className="method-item"><span className="method-number">03</span><div className="method-icon"><ClipboardCheck size={17} aria-hidden="true" /></div><h3>Show the next step</h3><p>Return ordered findings, policy-aware remediation and checks a reviewer can verify.</p><span className="method-foot">EVIDENCE · POLICY · OUTPUT</span></article>
+        </div>
+      </section>
+
+      <section className="landing-output" id="deliverable">
+        <div className="output-copy"><div className="landing-eyebrow"><span className="eyebrow-rule" /> BUILT FOR AUDITABILITY</div><h2>A clear answer.<br /><em>And the trail behind it.</em></h2><p>Each case is reviewed against the supplied deletion policy. Retention requirements and account tombstones remain in scope, and proposed actions never run against source systems.</p><button className="output-link" onClick={onOpenWorkspace}>Review the workspace <ArrowRight size={14} aria-hidden="true" /></button></div>
+        <div className="output-sheet">
+          <div className="output-sheet-top"><span>OUTPUT / CSV</span><span className="mono">case_id → result → steps</span></div>
+          <div className="output-row"><span className="output-step">01</span><div><strong>Finding</strong><small>What remains, with its evidence source</small></div><BookOpen size={15} aria-hidden="true" /></div>
+          <div className="output-row"><span className="output-step">02</span><div><strong>Remediation</strong><small>The complete, ordered policy treatment</small></div><GitBranch size={15} aria-hidden="true" /></div>
+          <div className="output-row"><span className="output-step">03</span><div><strong>Verification</strong><small>What must pass after the change</small></div><CircleCheck size={15} aria-hidden="true" /></div>
+          <div className="output-sheet-bottom"><span>DETERMINISTIC RUN</span><span>{health?.sample_count ?? 32} PUBLIC EXAMPLES</span></div>
+        </div>
+      </section>
+    </main>
+
+    <footer className="landing-footer"><a className="landing-footer-brand" href="/"><ShieldCheck size={15} aria-hidden="true" /> Ghost Data</a><span>Evidence first. Human review always.</span><button onClick={onOpenWorkspace}>Open workspace <ArrowRight size={13} aria-hidden="true" /></button></footer>
+  </div>
 }
 
 function RunProgress({ run, loadingCases }: { run: AuditRun | null; loadingCases: boolean }) {
@@ -799,7 +945,7 @@ function EvidenceDrawer({
         {evidence.excerpt ? <pre>{evidence.excerpt}</pre> : <p>{evidence.available_at_cutoff ? evidence.preview_url ? 'This image has no extracted text. Open the original below to inspect its contents.' : 'No text excerpt is available for this source.' : 'The source is hidden because it was captured after the cutoff.'}</p>}
         {evidence.preview_url && evidence.available_at_cutoff && <details className="evidence-preview-disclosure">
           <summary>Open original image <span>May show direct identifiers</span></summary>
-          <img className="evidence-preview" src={evidence.preview_url} alt={`Original source image ${evidence.evidence_id}`} />
+          <img className="evidence-preview" src={apiPath(evidence.preview_url)} alt={`Original source image ${evidence.evidence_id}`} />
         </details>}
         <p>Operational logs and workflow results are labeled as claims. The audit uses direct record observations to establish resource state.</p>
       </div>

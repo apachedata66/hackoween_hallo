@@ -16,6 +16,8 @@ REQUIRED = (
     ROOT / "evaluation" / "evaluation_report.md",
     ROOT / "evaluation" / "usage_report.md",
     ROOT / "ui" / "dist" / "index.html",
+    ROOT / "docs" / "DEPLOYMENT.md",
+    ROOT / "vercel.json",
 )
 EXCLUDED_DIRS = {
     ".git",
@@ -26,6 +28,11 @@ EXCLUDED_DIRS = {
     "cache",
     "caches",
     "dataset",
+}
+EXCLUDED_DIAGNOSTICS = {
+    "debug_linking.py",
+    "dump_case_steps.py",
+    "triage_failures.py",
 }
 ARCHIVE_SUFFIXES = {".zip", ".tar", ".gz", ".tgz", ".7z", ".rar"}
 SECRET_PATTERNS = (
@@ -56,6 +63,8 @@ def _included_files() -> list[Path]:
         ROOT / "config",
         ROOT / "scripts",
         ROOT / "ui",
+        ROOT / "docs" / "DEPLOYMENT.md",
+        ROOT / "vercel.json",
         ROOT / "pyproject.toml",
         ROOT / "requirements.txt",
     ):
@@ -79,6 +88,7 @@ def _included_files() -> list[Path]:
                     or (name.startswith(".env.") and name != ".env.example")
                     or name == "log.txt"
                     or name == "manual_review.md"
+                    or name in EXCLUDED_DIAGNOSTICS
                     or path.suffix.lower() in ARCHIVE_SUFFIXES
                 ):
                     continue

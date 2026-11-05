@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 import re
 import subprocess
 import sys
@@ -17,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -25,6 +27,19 @@ from ghostdata.paths import REPO_ROOT, dataset_dir
 from ghostdata.validate import validate_file
 
 app = FastAPI(title="Ghost Data Review", docs_url=None, redoc_url=None)
+_cors_origins = [
+    origin.strip()
+    for origin in os.environ.get("GHOSTDATA_CORS_ORIGINS", "").split(",")
+    if origin.strip()
+]
+if _cors_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_cors_origins,
+        allow_methods=["GET", "POST"],
+        allow_headers=["Content-Type"],
+        allow_credentials=False,
+    )
 _runs: dict[str, AuditRun] = {}
 _lock = threading.Lock()
 _email = re.compile(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}")

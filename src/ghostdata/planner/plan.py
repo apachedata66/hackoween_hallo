@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 
 from ghostdata.contract.models import (
     CaseAuditInput,
     CaseResult,
     DeletionStatus,
+    Operation,
     Step,
     number_steps,
 )
+from ghostdata.loaders.timeutil import parse_optional_timestamp
 from ghostdata.planner.status import (
     Authorization,
     all_four_conditions,
@@ -71,14 +74,22 @@ def plan_case(case: CaseAuditInput, rulebook: Rulebook) -> PlanOutcome:
         )
 
     status = DeletionStatus.COMPLETE if all_four_conditions(included) else DeletionStatus.INCOMPLETE
-    steps = _steps_for(status, included)
+    requested_at = parse_optional_timestamp(
+        str(request.get("requested_at") or ""), field="requested_at"
+    )
+    steps = _steps_for(status, included, requested_at=requested_at)
     return PlanOutcome(
         result=CaseResult(case_id, status, tuple(number_steps(steps))),
         warnings=warnings,
     )
 
 
-def _steps_for(status: DeletionStatus, assessments: list[Assessment]) -> list[Step]:
+def _steps_for(
+    status: DeletionStatus,
+    assessments: list[Assessment],
+    *,
+    requested_at: datetime | None = None,
+) -> list[Step]:
     drafted: list[tuple[Step, float]] = []
     cite_verification = status is DeletionStatus.COMPLETE
     for item in assessments:
@@ -115,6 +126,18 @@ def _steps_for(status: DeletionStatus, assessments: list[Assessment]) -> list[St
                 )
             )
         if item.verification:
+            if (
+                not cite_verification
+                and item.compliant
+                and item.verification[0] is Operation.VERIFY_RECORD_ABSENT
+                and requested_at is not None
+                and not _has_post_request_state_observation(item, requested_at)
+            ):
+                # An already-absent delete record with no state observation
+                # since the request is outside the remediation plan. Ignore
+                # older negative lookups and action claims; neither places
+                # the resource in scope at or after the request.
+                continue
             # In an incomplete plan, future verification is required for each
             # process we propose to remediate. An already inactive flow is not
             # part of that remediation plan; emitting a future disable check
@@ -161,3 +184,19 @@ def _steps_for(status: DeletionStatus, assessments: list[Assessment]) -> list[St
             unique[key] = step
             unique_priority[key] = priority
     return list(unique.values())
+
+
+def _has_post_request_state_observation(
+    item: Assessment, requested_at: datetime
+) -> bool:
+    """Whether a non-activity observation places this resource in request scope."""
+    for entry in item.resource.timeline:
+        event_type = str(entry.get("event_type") or "").upper()
+        if event_type == "ACTIVITY_OBSERVATION" or not event_type.endswith("_OBSERVATION"):
+            continue
+        observed_at = parse_optional_timestamp(
+            str(entry.get("event_time") or ""), field="resource timeline event_time"
+        )
+        if observed_at is not None and observed_at >= requested_at:
+            return True
+    return False

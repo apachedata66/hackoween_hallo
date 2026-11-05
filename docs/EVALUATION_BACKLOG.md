@@ -35,6 +35,9 @@ a particular final rank.
 - [x] Do not add a future disable verification for an already inactive flow
   to an incomplete case when that flow is not being remediated. Public case_15
   now matches exactly; a custom regression covers this contract rule.
+- [x] In incomplete plans, omit a future absence check when the only negative
+  state observation predates the deletion request and no later state observation
+  exists. Public case_17 now matches exactly in the OCR-enabled benchmark.
 - [x] Run the Python suite (83 tests), Ruff, and the React production build.
 
 ## Next work, in priority order
@@ -47,13 +50,11 @@ a particular final rank.
   analytics resource IDs that are absent from the relevant pre-cutoff SQL
   observations and have no identity-linked activity resource event. Keep these
   cases in manual review; do not infer IDs from sequential case numbering.
-- [ ] Raise ordered sequence accuracy (currently 0.2188 with OCR enabled). Triage
-  missing and extra steps by case, then fix general evidence, identity, policy,
-  or ordering rules rather than adding case-ID-specific behavior.
-  A trial that removed future checks for already-compliant resources reduced
-  public sequence accuracy to 0.0312 and was reverted. Keep the original
-  planner until a contract-backed general rule improves the measured result.
-- [ ] Review step recall (currently 0.8031) and precision (currently 0.9568)
+- [ ] Raise ordered sequence accuracy (currently 0.2500 with OCR enabled). Triage
+  remaining missing and extra steps by case, then fix general evidence,
+  identity, policy, or ordering rules rather than adding case-ID-specific
+  behavior. Do not emit steps without participant-visible linkage.
+- [ ] Review step recall (currently 0.8031) and precision (currently 0.9627)
   together. Focus on recurring missing verification checks and extra findings;
   do not improve recall by emitting unsupported steps.
 - [ ] Review the OCR-enabled public sample mismatch in `case_07`: the engine
@@ -112,11 +113,11 @@ a particular final rank.
 
 ## Current public benchmark baseline
 
-The OCR-enabled report records 32 gold cases, 29 predicted, and 3 held for
-manual review; status accuracy 0.9062; step precision 0.9568; step recall
-0.8031; step F1 0.8732; sequence accuracy 0.2188. Field accuracy is phase
-0.7959, system 0.5714, resource 0.5714, operation 0.6071, state 0.6224, and
-evidence 0.8010. These public-sample results are diagnostic, not hidden
+The latest OCR-enabled report records 32 gold cases, 29 predicted, and 3 held
+for manual review; status accuracy 0.9062; step precision 0.9627; step recall
+0.8031; step F1 0.8757; sequence accuracy 0.2500. Field accuracy is phase
+0.8000, system 0.5846, resource 0.5846, operation 0.6205, state 0.6359, and
+evidence 0.8051. These public-sample results are diagnostic, not hidden
 full-dataset accuracy. Earlier no-OCR metrics did not include the supported
 `object_19` finding in case_07; keep the current evidence-grounded output and
 review the public-gold disagreement before drawing conclusions. Re-check all

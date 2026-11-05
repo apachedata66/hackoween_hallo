@@ -189,6 +189,7 @@ def parse_records_text(
     evidence_id: str = "",
     file_path: str = "",
     captured_at: datetime | None = None,
+    system_hint: str = "",
 ) -> list[EvidenceRecord]:
     """Parse JSON text, accepting records at the root or under snapshots."""
     try:
@@ -208,6 +209,7 @@ def parse_records_text(
             evidence_id=evidence_id,
             file_path=file_path,
             captured_at=captured_at,
+            system_hint=system_hint,
             time_hint=root_time,
         )
     )
@@ -224,6 +226,7 @@ def load_records_file(
     *,
     evidence_id: str = "",
     captured_at: datetime | None = None,
+    system_hint: str = "",
 ) -> list[EvidenceRecord]:
     file_path = Path(path)
     try:
@@ -237,6 +240,7 @@ def load_records_file(
         evidence_id=evidence_id,
         file_path=str(file_path),
         captured_at=captured_at,
+        system_hint=system_hint,
     )
 
 

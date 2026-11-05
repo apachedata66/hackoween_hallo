@@ -41,7 +41,7 @@ By default, participant data is read from `dataset/`. To point at a separate dat
 
 ## Local review UI
 
-The React interface launches the same CLI engine through a local FastAPI service. It shows real request-count progress and elapsed time, validates the generated file before enabling download, masks request identifiers by default, and keeps evidence on the machine.
+The React site opens with a short project landing page and a connected audit workspace. The workspace launches the same CLI engine through FastAPI, shows real request-count progress and elapsed time, validates the generated file before enabling download, masks request identifiers by default, and keeps evidence on the machine in local mode.
 
 ```powershell
 python -m pip install -e ".[ui]"
@@ -49,6 +49,8 @@ python -m uvicorn ghostdata.api.app:app --app-dir src --host 127.0.0.1 --port 87
 ```
 
 Open `http://127.0.0.1:8765` after building the frontend. For frontend development, run `npm install` and `npm run dev` from `ui/`; in another terminal start FastAPI on port 8765. Keep the service bound to localhost when reviewing case data. See [`ui/README.md`](ui/README.md) for the full workflow.
+
+The repository includes a Vercel configuration for the static React frontend. The current FastAPI audit service needs a persistent process and participant dataset, so host it separately and set `VITE_API_BASE_URL` in Vercel to that HTTPS API origin. See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for deployment boundaries and exact settings.
 
 ## Output contract
 

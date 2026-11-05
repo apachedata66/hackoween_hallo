@@ -103,6 +103,23 @@ _DIRECT_FIELD_NAMES = frozenset(
     }
 )
 
+_EMPTY_IDENTIFIER_VALUES = frozenset(
+    {
+        "",
+        "null",
+        "none",
+        "nil",
+        "undefined",
+        "n/a",
+        "na",
+        "not applicable",
+        "not provided",
+        "not set",
+        "unknown",
+        "redacted",
+    }
+)
+
 
 def classify_category(*hints: str) -> str:
     """Map evidence labels to the policy category names used by the dataset."""
@@ -167,11 +184,18 @@ def direct_identifier_fields(raw: Any) -> tuple[str, ...]:
     """List direct-identifier field names populated in a nested record."""
     found: set[str] = set()
 
+    def has_identifier_value(value: Any) -> bool:
+        if value is None or value == [] or value == {}:
+            return False
+        if isinstance(value, str):
+            return value.strip().casefold() not in _EMPTY_IDENTIFIER_VALUES
+        return True
+
     def walk(value: Any) -> None:
         if isinstance(value, dict):
             for key, item in value.items():
                 normalized = re.sub(r"[^a-z0-9_]+", "_", str(key).casefold()).strip("_")
-                if normalized in _DIRECT_FIELD_NAMES and item not in (None, "", [], {}):
+                if normalized in _DIRECT_FIELD_NAMES and has_identifier_value(item):
                     found.add("email_hash" if normalized == "email_hash" else normalized)
                 walk(item)
         elif isinstance(value, (list, tuple)):

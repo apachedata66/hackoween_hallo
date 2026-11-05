@@ -46,15 +46,15 @@ execute deletions.
 
 ## Evaluation results to state accurately
 
-- The current full run produced and validated 518 rows in 56.02 seconds.
+- The current full run produced and validated 518 rows in 43.14 seconds.
 - The deterministic audit made 0 model calls and used 0 model tokens; local
   Tesseract 5.5.3 handled screenshot OCR.
 - All 17 participant-created synthetic cases pass. The Python suite, Ruff, and
   React production build pass.
 - On the 32-case public sample, status accuracy is 90.62%, step precision
-  95.68%, step recall 80.31%, step F1 87.32%, and exact sequence accuracy
-  21.88%. The sequence score improved by one exact case after removing a
-  future disable check for an already inactive flow. Three public cases are held because the engine cannot link the gold
+  96.27%, step recall 80.31%, step F1 87.57%, and exact sequence accuracy
+  25.00% (8/32). One case became exact after removing an unsupported future
+  absence check based only on pre-request state evidence. Three public cases are held because the engine cannot link the gold
   resource IDs to cutoff-eligible participant evidence.
 - These public-sample metrics do not measure hidden full-dataset accuracy.
   The OCR-enabled benchmark also exposes one disagreement: public gold omits a
