@@ -75,8 +75,11 @@ def main() -> int:
         "Added extractor-aware document caching so OCR results are refreshed when "
         "Tesseract becomes available after an earlier no-OCR run. The final full "
         "dataset run used local Tesseract 5.5.3 and recovered the nine previously "
-        "unlinked screenshot cases; the benchmark below is rerun with that same "
-        "OCR-enabled environment."
+        "unlinked screenshot cases. Also stopped emitting a future disable check "
+        "for an already inactive flow in an incomplete case, because it is not "
+        "part of the proposed remediation plan. That evidence-safe planner fix "
+        "corrected sample case_15 and raised exact sequence accuracy from 18.75% "
+        "to 21.88%; a custom regression covers the behavior."
     )
     with tempfile.TemporaryDirectory(prefix=".public-benchmark-", dir=ROOT / "evaluation") as work:
         prediction_path = Path(work) / "predictions.csv"

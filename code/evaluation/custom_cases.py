@@ -9,7 +9,7 @@ Run:
   python code/evaluation/custom_cases.py           # print pass/fail table
   python -m unittest tests.test_custom_cases       # via the test suite
 
-Coverage (16 cases >= the 10 the playbook asks for):
+Coverage (17 cases >= the 10 the playbook asks for):
   NOT_APPLICABLE (access ask, marketing opt-out),
   reported COMPLETE but actually INCOMPLETE,
   truly COMPLETE with evidence (retained record + blocked backup + idle flow),
@@ -18,7 +18,8 @@ Coverage (16 cases >= the 10 the playbook asks for):
   must-retain present, must-retain missing (known contract gap),
   restore risk unblocked, restore already blocked,
   unclear request text still audits, unknown category refuses to guess,
-  Spanish and French deletion requests.
+  Spanish and French deletion requests, and no future disable check for an
+  already inactive flow in an incomplete plan.
 """
 
 from __future__ import annotations
@@ -698,6 +699,59 @@ def build_cases() -> list[CustomCase]:
                     "VERIFY_RECORD_REDACTED",
                     "REDACTED",
                     "evidence_04",
+                ),
+            ],
+        )
+    )
+
+    # 17. An already-inactive process is not part of an incomplete case's
+    # remediation plan, so it must not receive a future disable verification.
+    cases.append(
+        _case(
+            "custom_17",
+            "incomplete plan verifies only a flow it will disable",
+            "Delete my account and remove the stale search entry.",
+            [
+                _resource(
+                    "search_service",
+                    "search_1309",
+                    category="SEARCH_INDEX_ENTRY",
+                    evidence="evidence_03",
+                ),
+                _resource(
+                    "sync_service",
+                    "sync_013",
+                    category="SYNC_FLOW",
+                    kind="flow",
+                    active=False,
+                    evidence="evidence_02",
+                ),
+            ],
+            "INCOMPLETE",
+            [
+                (
+                    "FINDING",
+                    "search_service",
+                    "search_1309",
+                    "REPORT_REMAINING_RECORD",
+                    "PRESENT",
+                    "evidence_03",
+                ),
+                (
+                    "REMEDIATION",
+                    "search_service",
+                    "search_1309",
+                    "DELETE_RECORD",
+                    "ABSENT",
+                    "",
+                ),
+                (
+                    "VERIFICATION",
+                    "search_service",
+                    "search_1309",
+                    "VERIFY_RECORD_ABSENT",
+                    "ABSENT",
+                    "",
                 ),
             ],
         )

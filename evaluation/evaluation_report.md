@@ -7,23 +7,23 @@ Metrics compare public sample harness predictions with public gold. Missing pred
 ```text
 Cases: 32 gold, 29 scored, 3 missing, 0 extra
 Status accuracy:      0.9062
-Step precision:       0.9509
+Step precision:       0.9568
 Step recall:          0.8031
-Step F1:              0.8708
-Sequence accuracy:    0.1875
+Step F1:              0.8732
+Sequence accuracy:    0.2188
 Field accuracy:
-  phase          0.7919
-  system_id      0.5685
-  resource_id    0.5635
-  operation      0.6041
-  state          0.6193
-  evidence_id    0.7970
+  phase          0.7959
+  system_id      0.5714
+  resource_id    0.5714
+  operation      0.6071
+  state          0.6224
+  evidence_id    0.8010
 Confusion (rows = gold, cols = predicted):
   gold\pred         COMPLETE       INCOMPLETE   NOT_APPLICABLE
   COMPLETE                 7                0                0
   INCOMPLETE               0               22                0
   NOT_APPLICABLE               0                0                0
-Failures: 26
+Failures: 25
   case_01: status MISSING (gold COMPLETE), steps 0 (gold 1)
     missing: VERIFICATION/account_service/account_001/VERIFY_RECORD_ABSENT/ABSENT/evidence_54
   case_02: status MISSING (gold COMPLETE), steps 0 (gold 1)
@@ -54,8 +54,6 @@ Failures: 26
     extra:   FINDING/analytics_platform/analytics_9914/REPORT_EXPOSED_PII/PRESENT/evidence_01
     extra:   REMEDIATION/analytics_platform/analytics_9914/ANONYMIZE_RECORD/ANONYMIZED/
     extra:   VERIFICATION/analytics_platform/analytics_9914/VERIFY_RECORD_ANONYMIZED/ANONYMIZED/
-  case_15: status INCOMPLETE (gold INCOMPLETE), steps 6 (gold 5)
-    extra:   VERIFICATION/integration_service/data_flow_1121/VERIFY_DATA_FLOW_DISABLED/DISABLED/
   case_17: status INCOMPLETE (gold INCOMPLETE), steps 6 (gold 5)
     extra:   VERIFICATION/account_service/account_6523/VERIFY_RECORD_ABSENT/ABSENT/
   case_18: status INCOMPLETE (gold INCOMPLETE), steps 12 (gold 14)
@@ -80,12 +78,15 @@ Failures: 26
   case_26: status COMPLETE (gold COMPLETE), steps 4 (gold 6)
     missing: VERIFICATION/account_service/account_5684/VERIFY_RECORD_ABSENT/ABSENT/evidence_92
     missing: VERIFICATION/analytics_platform/analytics_4566/VERIFY_RECORD_ANONYMIZED/ANONYMIZED/evidence_92
-  ... 6 more (raise --show)
+  case_27: status COMPLETE (gold COMPLETE), steps 4 (gold 6)
+    missing: VERIFICATION/account_service/account_3866/VERIFY_RECORD_ABSENT/ABSENT/evidence_92
+    missing: VERIFICATION/analytics_platform/analytics_4574/VERIFY_RECORD_ANONYMIZED/ANONYMIZED/evidence_92
+  ... 5 more (raise --show)
 ```
 
 ## Custom evaluation cases
 
-Ran 16 hand-built cases; 16 passed.
+Ran 17 hand-built cases; 17 passed.
 
 | Case | Scenario | Result | Details |
 | --- | --- | --- | --- |
@@ -105,6 +106,7 @@ Ran 16 hand-built cases; 16 passed.
 | custom_14 | unknown category warns instead of guessing | PASS | Expected status and steps matched; output validated. |
 | custom_15 | Spanish request authorizes deletion | PASS | Expected status and steps matched; output validated. |
 | custom_16 | French request authorizes deletion | PASS | Expected status and steps matched; output validated. |
+| custom_17 | incomplete plan verifies only a flow it will disable | PASS | Expected status and steps matched; output validated. |
 
 ## Failures found
 
@@ -112,7 +114,7 @@ The evidence engine withheld 3 public sample cases for manual review (case_01: n
 
 ## Improvements made
 
-Corrected evaluation accounting so missing predictions count as false negatives for step recall and field accuracy, while extra-case steps count as false positives. The earlier step recall/F1 (0.8201/0.8807) omitted the expected steps for missing cases; the corrected values are reported below. Added regression coverage and a one-command benchmark harness. Also stopped treating identity-link events alone as proof that a resource is still present; independent resource observations are required for state findings. Added a cutoff-bounded filename-alias join for independently captured same-system listings, plus explicit continuous-sync state extraction for flow documents. Added extractor-aware document caching so OCR results are refreshed when Tesseract becomes available after an earlier no-OCR run. The final full dataset run used local Tesseract 5.5.3 and recovered the nine previously unlinked screenshot cases; the benchmark below is rerun with that same OCR-enabled environment.
+Corrected evaluation accounting so missing predictions count as false negatives for step recall and field accuracy, while extra-case steps count as false positives. The earlier step recall/F1 (0.8201/0.8807) omitted the expected steps for missing cases; the corrected values are reported below. Added regression coverage and a one-command benchmark harness. Also stopped treating identity-link events alone as proof that a resource is still present; independent resource observations are required for state findings. Added a cutoff-bounded filename-alias join for independently captured same-system listings, plus explicit continuous-sync state extraction for flow documents. Added extractor-aware document caching so OCR results are refreshed when Tesseract becomes available after an earlier no-OCR run. The final full dataset run used local Tesseract 5.5.3 and recovered the nine previously unlinked screenshot cases. Also stopped emitting a future disable check for an already inactive flow in an incomplete case, because it is not part of the proposed remediation plan. That evidence-safe planner fix corrected sample case_15 and raised exact sequence accuracy from 18.75% to 21.88%; a custom regression covers the behavior.
 
 ## Run metadata
 

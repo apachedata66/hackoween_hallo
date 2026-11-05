@@ -115,6 +115,17 @@ def _steps_for(status: DeletionStatus, assessments: list[Assessment]) -> list[St
                 )
             )
         if item.verification:
+            # In an incomplete plan, future verification is required for each
+            # process we propose to remediate. An already inactive flow is not
+            # part of that remediation plan; emitting a future disable check
+            # for it adds an unsupported step. Complete cases still cite the
+            # current evidence that proves every relevant flow is inactive.
+            if (
+                not cite_verification
+                and item.resource.kind == "flow"
+                and not item.resource.is_active_flow
+            ):
+                continue
             verify_op, verify_state = item.verification
             drafted.append(
                 (

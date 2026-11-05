@@ -1233,3 +1233,121 @@ branch=codex/integration
 repo_root=C:\Users\Asus\Desktop\hallowen
 worktree=main
 parent_agent=none
+## [2026-11-05T02:08:45Z] Continue accuracy improvement
+
+User Prompt (verbatim, secrets redacted):
+okay make chnages to get that accuracy then
+
+Agent Response Summary:
+Fetched the latest integration refs and began the requested public-sample accuracy work. Audited the exact-sequence failures before changing the planner; no case-specific label or inferred resource mapping was added.
+
+Actions:
+* Fetched `origin` before starting the accuracy task.
+* Compared public sample predictions, gold steps, and participant-visible evidence.
+
+Context:
+tool=Codex desktop
+model=GPT-6
+branch=codex/integration
+repo_root=C:\Users\Asus\Desktop\hallowen
+worktree=main
+parent_agent=none
+
+## [2026-11-05T02:08:45Z] Explain and investigate low sequence score
+
+User Prompt (verbatim, secrets redacted):
+why this is so less fix it asap
+Attachment: codex-clipboard-642a191d-9bcb-4bf6-b910-4b5283aa7401.png
+
+Agent Response Summary:
+Explained that exact sequence requires every step field and order to match, then audited the public failures. Identified an extra future disable verification for an already inactive flow in an incomplete case and added a general contract-based fix with a custom regression.
+
+Actions:
+* Inspected all public mismatch cases and checked for order-only failures.
+* Changed planner verification scoping and added custom case 17.
+
+Context:
+tool=Codex desktop
+model=GPT-6
+branch=codex/integration
+repo_root=C:\Users\Asus\Desktop\hallowen
+worktree=main
+parent_agent=none
+
+## [2026-11-05T02:08:45Z] List expected and current accuracy targets
+
+User Prompt (verbatim, secrets redacted):
+what are the expceted accuracy percentage versus our percentages list all of it
+
+Agent Response Summary:
+Clarified that the problem statement defines evaluation metrics but no required percentage threshold. Listed current public benchmark values and explained that full-dataset accuracy remains unknown without hidden gold labels.
+
+Actions:
+* Read the current evaluation report and summarized status, step, field, and sequence metrics.
+
+Context:
+tool=Codex desktop
+model=GPT-6
+branch=codex/integration
+repo_root=C:\Users\Asus\Desktop\hallowen
+worktree=main
+parent_agent=none
+
+## [2026-11-05T02:08:45Z] Set internal accuracy aims
+
+User Prompt (verbatim, secrets redacted):
+then tell me what is the current percentages and what is our aim percentages
+
+Agent Response Summary:
+Provided current public percentages and labeled the target percentages as internal goals, not official thresholds. Set a stretch of near-perfect status accuracy and step precision/recall, with staged sequence targets because each exact case contributes 3.125 points on the 32-case sample.
+
+Actions:
+* Compared current sample metrics with the internal improvement targets.
+
+Context:
+tool=Codex desktop
+model=GPT-6
+branch=codex/integration
+repo_root=C:\Users\Asus\Desktop\hallowen
+worktree=main
+parent_agent=none
+
+## [2026-11-05T02:08:45Z] Split accuracy work by metric
+
+User Prompt (verbatim, secrets redacted):
+on which accuracy u are working i will tell my teammate to work on other accuracy
+
+Agent Response Summary:
+Assigned this work to exact-sequence accuracy and recommended that the teammate focus on step recall and field accuracy through evidence parsing and identity-to-resource linkage. Kept the work split at planner behavior versus evidence reconstruction.
+
+Actions:
+* Reported the current score gaps and non-overlapping areas of focus.
+
+Context:
+tool=Codex desktop
+model=GPT-6
+branch=codex/integration
+repo_root=C:\Users\Asus\Desktop\hallowen
+worktree=main
+parent_agent=none
+
+## [2026-11-05T02:08:45Z] Improve exact sequence accuracy
+
+User Prompt (verbatim, secrets redacted):
+look we need to change this exact sequence accuracy very drastically so do it fast we dont have time to just increase 5 percent everytime
+
+Agent Response Summary:
+Removed an unsupported future disable check for an already inactive flow in an incomplete case. The OCR-enabled public benchmark moved from 18.75% to 21.88% exact sequence accuracy (6/32 to 7/32), while step precision rose to 95.68% and recall stayed at 80.31%. Regenerated and validated the 518-row output and submission package; remaining reviewed mismatches mostly require missing identity links or disagree with public gold, so no unsupported case-specific steps were added.
+
+Actions:
+* Added a planner regression case; 17/17 custom cases pass.
+* Reran the benchmark, all Python tests, Ruff, the 518-case CLI, CSV validator, and package inspection.
+* Refreshed `output.csv`, evaluation reports, interview notes, and `code.zip`.
+
+Context:
+tool=Codex desktop
+model=GPT-6
+branch=codex/integration
+repo_root=C:\Users\Asus\Desktop\hallowen
+worktree=main
+parent_agent=none
