@@ -1940,3 +1940,25 @@ branch=codex/integration
 repo_root=C:\Users\Asus\Desktop\hallowen
 worktree=main
 parent_agent=none
+## [2026-11-05T14:43:35+05:30] Clarify Vercel deployment configuration
+
+User Prompt (verbatim, secrets redacted):
+actually iam not abele to deploye properly there are so many errors please fix that and also tell me what to select vite or fast api? and also tell me afinal ptich for the presentation of demo how should we give our demmo
+
+Agent Response Summary:
+Made the Vercel deployment explicitly select Vite, install dependencies from ui/, build the React app, and serve ui/dist. Updated deployment instructions to explain the separate persistent FastAPI service, the VITE_API_BASE_URL and CORS settings, and why the current subprocess and in-memory API should not be deployed as the frontend preset. Confirmed the Vite production build and parsed the Vercel configuration successfully. Prepared a demo path using repository output case_483.
+
+Actions:
+* Fetched all remote branches before work.
+* Consulted current official Vercel build and Python runtime documentation.
+* Edited vercel.json and docs/DEPLOYMENT.md.
+* Ran npm --prefix ui run build and parsed vercel.json; restored only build-generated line-ending changes in ui/dist.
+* Preserved tests/test_api_health.py and unrelated local artifacts.
+
+Context:
+tool=Codex desktop
+model=GPT-6
+branch=codex/integration
+repo_root=C:\Users\Asus\Desktop\hallowen
+worktree=main
+parent_agent=none
