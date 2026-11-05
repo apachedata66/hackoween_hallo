@@ -25,7 +25,7 @@ npm ci
 npm run build
 Pop-Location
 python -m pip install -e ".[ui]"
-python -m uvicorn ghostdata.api.app:app --app-dir src --host 127.0.0.1 --port 8765
+python -m uvicorn ghostdata.api.app:app --app-dir code --host 127.0.0.1 --port 8765
 ```
 
 Open `http://127.0.0.1:8765`. The FastAPI application serves the built React client and the audit API from the same origin.

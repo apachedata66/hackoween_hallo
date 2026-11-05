@@ -13,7 +13,7 @@ From the repository root, install the optional Python dependencies and build the
 ```powershell
 python -m pip install -e ".[ui]"
 Push-Location ui; npm install; npm run build; Pop-Location
-python -m uvicorn ghostdata.api.app:app --app-dir src --host 127.0.0.1 --port 8765
+python -m uvicorn ghostdata.api.app:app --app-dir code --host 127.0.0.1 --port 8765
 ```
 
 Open `http://127.0.0.1:8765`. Configure a dataset outside the app using `GHOSTDATA_DATASET` if the repository does not contain `dataset/`.

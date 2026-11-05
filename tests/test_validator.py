@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
+sys.path.insert(0, str(ROOT / "code"))
 
 from ghostdata.paths import dataset_dir  # noqa: E402
 from ghostdata.validate import validate_file  # noqa: E402

@@ -29,7 +29,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "src"))
+sys.path.insert(0, str(ROOT / "code"))
 
 from ghostdata.contract.csv_io import steps_to_json  # noqa: E402
 from ghostdata.contract.models import (  # noqa: E402

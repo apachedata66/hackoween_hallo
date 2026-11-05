@@ -18,13 +18,13 @@ request CSV ── identity resolver ── evidence loaders ── state recons
 
 ## Components
 
-- `src/ghostdata/loaders/`: CSV, PDF, text, JSON, log, image, and SQL evidence loaders.
-- `src/ghostdata/identity/`: current and historical identity resolution.
-- `src/ghostdata/state/`: time-bounded evidence and activity reconstruction.
-- `src/ghostdata/detectors/`, `policy/`, and `planner/`: remaining records, exposed identifiers, active recreation paths, required treatments, and output steps.
-- `src/ghostdata/validate.py`: output and evidence-reference validation.
-- `src/ghostdata/cli.py`: batch entry point used by both terminal and UI runs.
-- `src/ghostdata/api/app.py`: local FastAPI run and case API. It invokes the CLI as a subprocess, validates the result, and never recomputes verdicts.
+- `code/ghostdata/loaders/`: CSV, PDF, text, JSON, log, image, and SQL evidence loaders.
+- `code/ghostdata/identity/`: current and historical identity resolution.
+- `code/ghostdata/state/`: time-bounded evidence and activity reconstruction.
+- `code/ghostdata/detectors/`, `policy/`, and `planner/`: remaining records, exposed identifiers, active recreation paths, required treatments, and output steps.
+- `code/ghostdata/validate.py`: output and evidence-reference validation.
+- `code/ghostdata/cli.py`: batch entry point used by both terminal and UI runs.
+- `code/ghostdata/api/app.py`: local FastAPI run and case API. It invokes the CLI as a subprocess, validates the result, and never recomputes verdicts.
 - `ui/src/`: React and TypeScript review surface. Vite serves it in development and builds local static assets for FastAPI in production.
 
 ## Guarantees and limits

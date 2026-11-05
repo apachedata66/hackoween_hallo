@@ -2,6 +2,14 @@
 
 An evidence based deletion audit tool for the college hackathon problem statement. It checks whether a request authorizes deletion, resolves current and historical identity links, reconstructs data state at the request's audit cutoff, applies the supplied retention policy, and produces evidence backed findings and safe next steps.
 
+## Repository layout
+
+- `code/`: Python CLI, evidence engine, API, and evaluation harness.
+- `dataset/`: place participant-facing challenge data here; only the setup note is tracked.
+- `docs/`, `evaluation/`, `results/`, `scripts/`, and `tests/`: project notes, reports, supplementary files, utilities, and checks.
+- `ui/`: React/Vite landing page and review workspace.
+- `output.csv`: validated prediction artifact for submission.
+
 The decision engine is deterministic and local. It currently makes **no external model calls** and needs no API key. That keeps runs reproducible and avoids sending case data to a third party.
 
 ## Run the audit
@@ -45,7 +53,7 @@ The React site opens with a short project landing page and a connected audit wor
 
 ```powershell
 python -m pip install -e ".[ui]"
-python -m uvicorn ghostdata.api.app:app --app-dir src --host 127.0.0.1 --port 8765
+python -m uvicorn ghostdata.api.app:app --app-dir code --host 127.0.0.1 --port 8765
 ```
 
 Open `http://127.0.0.1:8765` after building the frontend. For frontend development, run `npm install` and `npm run dev` from `ui/`; in another terminal start FastAPI on port 8765. Keep the service bound to localhost when reviewing case data. See [`ui/README.md`](ui/README.md) for the full workflow.

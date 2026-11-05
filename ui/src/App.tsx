@@ -1,6 +1,6 @@
 
-import { useEffect, useMemo, useRef, useState } from 'react'
-import type { ComponentType, FormEvent, MutableRefObject, SVGProps } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import type { ComponentType, FormEvent, SVGProps } from 'react'
 import {
   Activity,
   AlertTriangle,
@@ -231,11 +231,11 @@ function App() {
   const [selectedEvidenceId, setSelectedEvidenceId] = useState('')
   const [evidence, setEvidence] = useState<Evidence | null>(null)
   const [evidenceError, setEvidenceError] = useState('')
+  const [evidenceReload, setEvidenceReload] = useState(0)
   const [starting, setStarting] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [toast, setToast] = useState('')
-  const drawerRef = useRef<HTMLDialogElement>(null)
 
   useEffect(() => {
     const handlePopState = () => {
@@ -358,29 +358,39 @@ function App() {
   }, [caseReload, selectedCaseId, run?.run_id])
 
   useEffect(() => {
-    const dialog = drawerRef.current
-    if (selectedEvidenceId && dialog && !dialog.open) dialog.show()
-    if (!selectedEvidenceId && dialog?.open) dialog.close()
     if (!selectedEvidenceId || !selectedCaseId || !run?.run_id) {
       setEvidence(null)
       setEvidenceError('')
       return
     }
     const controller = new AbortController()
+    let timedOut = false
     setEvidence(null)
     setEvidenceError('')
+    const timeout = window.setTimeout(() => {
+      timedOut = true
+      setEvidenceError('Evidence is taking too long to load. Check that the local service is running, then retry.')
+      controller.abort()
+    }, 8000)
     api<Evidence>(
       `/api/runs/${run.run_id}/cases/${selectedCaseId}/evidence/${selectedEvidenceId}`,
       { signal: controller.signal },
     )
-      .then(setEvidence)
+      .then((result) => {
+        window.clearTimeout(timeout)
+        setEvidence(result)
+      })
       .catch((error: unknown) => {
-        if (!(error instanceof DOMException && error.name === 'AbortError')) {
+        window.clearTimeout(timeout)
+        if (!(error instanceof DOMException && error.name === 'AbortError') && !timedOut) {
           setEvidenceError(error instanceof Error ? error.message : 'Evidence could not be loaded.')
         }
       })
-    return () => controller.abort()
-  }, [selectedEvidenceId, selectedCaseId, run?.run_id])
+    return () => {
+      window.clearTimeout(timeout)
+      controller.abort()
+    }
+  }, [evidenceReload, selectedEvidenceId, selectedCaseId, run?.run_id])
 
   useEffect(() => {
     if (!toast) return
@@ -625,11 +635,11 @@ function App() {
       </div>
 
       <EvidenceDrawer
-        dialogRef={drawerRef}
         evidence={evidence}
         error={evidenceError}
         evidenceId={selectedEvidenceId}
         onClose={closeEvidence}
+        onRetry={() => setEvidenceReload((value) => value + 1)}
       />
       {toast && <div className="toast" role="status" aria-live="polite"><CircleHelp size={15} aria-hidden="true" />{toast}<button aria-label="Dismiss message" onClick={() => setToast('')}><X size={14} /></button></div>}
     </div>
@@ -934,22 +944,23 @@ function MetaItem({ label, value, mono = false }: { label: string; value: string
 }
 
 function EvidenceDrawer({
-  dialogRef,
   evidence,
   error,
   evidenceId,
   onClose,
+  onRetry,
 }: {
-  dialogRef: MutableRefObject<HTMLDialogElement | null>
   evidence: Evidence | null
   error: string
   evidenceId: string
   onClose: () => void
+  onRetry: () => void
 }) {
-  return <dialog className="evidence-drawer" ref={dialogRef} aria-labelledby="evidence-title" onCancel={(event) => { event.preventDefault(); onClose() }} onClose={onClose}>
+  if (!evidenceId) return null
+  return <aside className="evidence-drawer" role="dialog" aria-modal="false" aria-labelledby="evidence-title">
     <div className="drawer-head"><div><span className="eyebrow">EVIDENCE SOURCE</span><h2 id="evidence-title" className="mono">{evidenceId}</h2></div><button className="icon-button" onClick={onClose} aria-label="Close evidence"><X size={17} /></button></div>
     {!evidence && !error && <div className="drawer-body" role="status"><LoaderCircle className="spin" size={17} /> Loading evidence…</div>}
-    {error && <div className="drawer-body" role="alert"><div className="run-error"><AlertTriangle size={15} />{error}</div></div>}
+    {error && <div className="drawer-body" role="alert"><div className="run-error"><AlertTriangle size={15} />{error}</div><div className="retry-row"><button className="secondary-button" onClick={onRetry}>Retry evidence load</button><button className="text-button" onClick={onClose}>Close panel</button></div></div>}
     {evidence && <>
       <div className="drawer-meta">
         <MetaItem label="Source" value={evidence.source || 'Participant evidence'} />
@@ -969,7 +980,7 @@ function EvidenceDrawer({
         <p>Operational logs and workflow results are labeled as claims. The audit uses direct record observations to establish resource state.</p>
       </div>
     </>}
-  </dialog>
+  </aside>
 }
 
 export default App

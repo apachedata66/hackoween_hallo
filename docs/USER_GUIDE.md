@@ -26,7 +26,7 @@ python code/main.py validate output.csv --input "$env:GHOSTDATA_DATASET\deletion
 
 `run` defaults to all requests and writes `output.csv` at the repository root. Sample runs and single-case runs use separate default filenames so they do not overwrite the submission output. Use `--no-llm` to turn off optional model processing. `--resume` asks the evidence provider to reuse its extraction cache. `--workers` controls parallel evidence processing. `--explain` prints the verdict, prior workflow status, timeline, evidence-based reasons, and proposed actions.
 
-The CLI calls the evidence adapter at `src/ghostdata/evidence/pipeline.py`, which loads the participant-facing dataset through the evidence engine. Cases that cannot be represented with evidence-backed steps stop the batch and produce a PII-free `evaluation/manual_review.md`; no prediction file is written.
+The CLI calls the evidence adapter at `code/ghostdata/evidence/pipeline.py`, which loads the participant-facing dataset through the evidence engine. Cases that cannot be represented with evidence-backed steps stop the batch and produce a PII-free `evaluation/manual_review.md`; no prediction file is written.
 
 ## Local review interface
 
@@ -35,7 +35,7 @@ Install `.[ui]`, build the React frontend in `ui/` with `npm install` and `npm r
 ```powershell
 python -m pip install -e ".[ui]"
 Push-Location ui; npm install; npm run build; Pop-Location
-python -m uvicorn ghostdata.api.app:app --app-dir src --host 127.0.0.1 --port 8765
+python -m uvicorn ghostdata.api.app:app --app-dir code --host 127.0.0.1 --port 8765
 ```
 
 Open `http://127.0.0.1:8765`. Start a full audit or a public sample run. The progress panel reflects the CLI's reported request counts, elapsed time, estimated remaining time, and warnings. When a run passes validation, filter and search the case list, inspect a case and its evidence, then download the validated CSV. Identifiers are masked by default and can be revealed for the selected case. Evidence created after the case cutoff is not shown as verdict evidence.

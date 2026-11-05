@@ -1,5 +1,6 @@
-# Dataset stays out of git (playbook §4, AGENTS.md §6.9)
-dataset/
+# Keep the expected dataset/ directory visible without checking in dataset contents.
+dataset/*
+!dataset/README.md
 
 # Secrets - only .env.example is ever committed
 .env

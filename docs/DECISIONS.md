@@ -18,7 +18,7 @@ wins (playbook page 2, "Honest caveat"). Examples already noted:
   `evaluation/usage_report.md` (AGENTS.md 6.8) - a top-level `evaluation/`
   folder is explicitly allowed by the official README packaging section.
 - `code/main.py` is the documented Python entry point (AGENTS.md 6.10);
-  the playbook's `src/ghostdata/` package is imported by it, not a conflict.
+  the playbook's `code/ghostdata/` package is imported by it, not a conflict.
 
 ### D2 - Repository and dataset layout (2026-11-04, A)
 
@@ -31,7 +31,7 @@ wins (playbook page 2, "Honest caveat"). Examples already noted:
 
 ### D3 - Data contract drafted by A for B's review (2026-11-04, A) [J1]
 
-`src/ghostdata/contract/` now contains the section-5 dataclasses
+`code/ghostdata/contract/` now contains the section-5 dataclasses
 (`ResolvedIdentity`, `ResourceState`, `CaseAuditInput`) plus the output
 enums and the 15 allowed (phase, operation, state) pairs transcribed
 verbatim from `problem_statement.md`. Person B owns `contract/` long-term
@@ -43,11 +43,11 @@ both people's agreement (section 5 rule).
 `config/settings.yaml` ships with `llm.enabled: false`. The core pipeline
 must produce the same bytes with no LLM configured (`--no-llm` fallback,
 playbook section 11). LLM use is restricted to OCR/vision/ambiguous text and
-is always cached and tracked in `src/ghostdata/llm/`.
+is always cached and tracked in `code/ghostdata/llm/`.
 
 ### D5 - Timestamp policy: everything is aware UTC (2026-11-04, A)
 
-`src/ghostdata/loaders/timeutil.py` is the only place time is parsed:
+`code/ghostdata/loaders/timeutil.py` is the only place time is parsed:
 ISO-8601, trailing `Z` -> UTC, **naive timestamps treated as UTC**, output
 always an aware UTC datetime. Bad/empty timestamps raise `LoaderError` with a
 plain-language message naming the field - never a traceback. All observed
@@ -78,7 +78,7 @@ Decision recorded per the user's explicit direction: the web interface is a
 **React** front end talking to a **FastAPI** back end - not Streamlit.
 Agreed shape:
 
-- `ui/` holds the React app (Vite scaffold) and `src/ghostdata/api/` holds the
+- `ui/` holds the React app (Vite scaffold) and `code/ghostdata/api/` holds the
   FastAPI app; both call the same engine functions the CLI calls - the UI can
   never change a verdict or `output.csv` (playbook 10.4).
 - **One command** starts everything; FastAPI also serves the built React

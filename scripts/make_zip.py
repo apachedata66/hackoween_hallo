@@ -58,7 +58,6 @@ def _included_files() -> list[Path]:
     for top in (
         ROOT / "README.md",
         ROOT / "code",
-        ROOT / "src",
         ROOT / "evaluation",
         ROOT / "config",
         ROOT / "scripts",
