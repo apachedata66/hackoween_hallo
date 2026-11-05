@@ -50,7 +50,7 @@ type RunCounts = Record<DeletionStatus, number>
 
 type AuditRun = {
   run_id: string
-  mode: 'full' | 'samples'
+  mode: 'full' | 'samples' | 'saved'
   state: RunState
   stage: string
   processed: number
@@ -213,6 +213,7 @@ function App() {
   const [screen, setScreen] = useState<'landing' | 'workspace'>(() =>
     window.location.pathname === '/workspace' ? 'workspace' : 'landing',
   )
+  const [workspaceView, setWorkspaceView] = useState<'overview' | 'cases'>('overview')
   const [health, setHealth] = useState<Health | null>(null)
   const [healthError, setHealthError] = useState('')
   const [run, setRun] = useState<AuditRun | null>(null)
@@ -277,6 +278,7 @@ function App() {
             if (!stopped) {
               setCases(result.cases)
               setFilter('ALL')
+              setWorkspaceView('cases')
               setRunError('')
             }
           } catch (error) {
@@ -357,7 +359,7 @@ function App() {
 
   useEffect(() => {
     const dialog = drawerRef.current
-    if (selectedEvidenceId && dialog && !dialog.open) dialog.showModal()
+    if (selectedEvidenceId && dialog && !dialog.open) dialog.show()
     if (!selectedEvidenceId && dialog?.open) dialog.close()
     if (!selectedEvidenceId || !selectedCaseId || !run?.run_id) {
       setEvidence(null)
@@ -392,10 +394,11 @@ function App() {
     return base.filter((item) => filter === 'ALL' || item.deletion_status === filter)
   }, [cases, filter, query, searchCases])
 
-  async function startRun(mode: 'full' | 'samples') {
+  async function startRun(mode: 'full' | 'samples' | 'saved') {
     if (activeRun || starting) return
     setStarting(true)
     navigate('workspace')
+    setWorkspaceView('overview')
     setRunError('')
     setCases([])
     setSearchCases(null)
@@ -409,9 +412,16 @@ function App() {
         body: JSON.stringify({ mode }),
       })
       setRun(result)
+      if (result.state === 'complete') {
+        setCasesLoading(true)
+        const page = await api<CasePage>(`/api/runs/${result.run_id}/cases?offset=0&limit=1000`)
+        setCases(page.cases)
+        setWorkspaceView('cases')
+      }
     } catch (error) {
       setRunError(error instanceof Error ? error.message : 'The audit could not be started.')
     } finally {
+      setCasesLoading(false)
       setStarting(false)
     }
   }
@@ -463,7 +473,7 @@ function App() {
     }
   }
 
-  const currentPage = selectedCaseId ? 'case' : cases.length || run?.state === 'complete' ? 'cases' : 'overview'
+  const currentPage = selectedCaseId ? 'case' : workspaceView
 
   if (screen === 'landing') {
     return <LandingPage
@@ -484,10 +494,10 @@ function App() {
         </button>
         <button className="nav-item home-nav" onClick={() => navigate('landing')}><ArrowLeft size={15} aria-hidden="true" /> Project overview</button>
         <div className="side-label">WORKSPACE</div>
-        <button className={`nav-item${currentPage === 'overview' ? ' active' : ''}`} onClick={() => { returnToCases(); setMenuOpen(false) }}>
+        <button className={`nav-item${currentPage === 'overview' ? ' active' : ''}`} onClick={() => { returnToCases(); setWorkspaceView('overview'); setMenuOpen(false) }}>
           <Activity size={16} aria-hidden="true" /> Overview
         </button>
-        <button className={`nav-item${currentPage === 'cases' || currentPage === 'case' ? ' active' : ''}`} onClick={() => { returnToCases(); setMenuOpen(false) }}>
+        <button className={`nav-item${currentPage === 'cases' || currentPage === 'case' ? ' active' : ''}`} onClick={() => { returnToCases(); setWorkspaceView('cases'); setMenuOpen(false) }}>
           <FileText size={16} aria-hidden="true" /> Case register
         </button>
         <div className="side-rule" />
@@ -568,6 +578,9 @@ function App() {
                     <button className="secondary-button" disabled={!health?.ready || activeRun || starting} onClick={() => startRun('samples')}>
                       Run public sample
                     </button>
+                    <button className="secondary-button" disabled={!health?.ready || activeRun || starting} onClick={() => startRun('saved')}>
+                      Open validated output
+                    </button>
                   </div>
                   {runError && <div className="inline-warning" role="alert"><AlertTriangle size={14} />{runError}</div>}
                 </div>
@@ -588,7 +601,7 @@ function App() {
 
               {run?.state === 'failed' && run.error && <div className="run-error" role="alert"><AlertTriangle size={16} />{run.error}</div>}
 
-              {run?.state === 'complete' && <CaseRegister
+              {workspaceView === 'cases' && run?.state === 'complete' && <CaseRegister
                 cases={visibleCases}
                 allCases={cases}
                 filter={filter}
@@ -599,6 +612,11 @@ function App() {
                 onSubmit={handleSearchSubmit}
                 onOpenCase={openCase}
               />}
+              {workspaceView === 'cases' && run?.state !== 'complete' && <section className="panel cases-unavailable" role="status">
+                <strong>Case register is waiting for a validated run</strong>
+                <p>{run?.state === 'review_required' ? 'This run needs evidence review before its results can be opened. Load the saved validated output for the presentation, or rerun with OCR configured.' : 'Load the saved validated output or start an audit to enable the status filters and evidence review.'}</p>
+                <button className="primary-button" disabled={!health?.ready || activeRun || starting} onClick={() => startRun('saved')}><FileText size={14} aria-hidden="true" /> Open validated output</button>
+              </section>}
             </>
           )}
         </main>
@@ -716,6 +734,7 @@ function LandingPage({
 
 function RunProgress({ run, loadingCases }: { run: AuditRun | null; loadingCases: boolean }) {
   const state = run?.state ?? 'queued'
+  const runTitle = run?.mode === 'saved' ? 'Saved validated output' : run?.mode === 'full' ? 'Full audit run' : 'Public sample run'
   const progress = run && run.total > 0 ? Math.min(100, Math.round((run.processed / run.total) * 100)) : 0
   const active = run?.state === 'queued' || run?.state === 'running'
   const stage = run?.stage || 'Ready when you are'
@@ -732,7 +751,7 @@ function RunProgress({ run, loadingCases }: { run: AuditRun | null; loadingCases
     <section className={`panel run-progress${active ? ' is-running' : ''}`} aria-labelledby="progress-title">
       <div className="progress-header">
         <div className="progress-icon">{active ? <LoaderCircle className="spin" size={17} aria-hidden="true" /> : run?.state === 'complete' ? <CheckCircle2 size={17} aria-hidden="true" /> : <Clock3 size={17} aria-hidden="true" />}</div>
-        <div className="progress-title"><h2 id="progress-title">{run ? (run.mode === 'full' ? 'Full audit run' : 'Public sample run') : 'Run activity'}</h2><span>{run ? stage : 'Live case counts, active stage, elapsed time, and evidence warnings will appear here.'}</span></div>
+        <div className="progress-title"><h2 id="progress-title">{run ? runTitle : 'Run activity'}</h2><span>{run ? stage : 'Live case counts, active stage, elapsed time, and evidence warnings will appear here.'}</span></div>
         <span className={`run-state state-${state}`}>{run ? state.replace('_', ' ').toUpperCase() : 'READY'}</span>
       </div>
       <div

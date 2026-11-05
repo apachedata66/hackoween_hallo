@@ -159,7 +159,7 @@ class AuditRun:
 
 
 class RunRequest(BaseModel):
-    mode: str = Field(default="full", pattern="^(full|samples)$")
+    mode: str = Field(default="full", pattern="^(full|samples|saved)$")
 
 
 class SearchRequest(BaseModel):
@@ -295,6 +295,25 @@ def start_run(body: RunRequest) -> dict[str, Any]:
         )
         run = AuditRun(uuid.uuid4().hex, body.mode, source)
         _runs[run.run_id] = run
+        if body.mode == "saved":
+            saved_output = REPO_ROOT / "output.csv"
+            if not saved_output.is_file():
+                _runs.pop(run.run_id, None)
+                raise HTTPException(404, "No validated output.csv is available yet.")
+            issues = validate_file(saved_output, requests_path=source, dataset_dir=root)
+            if issues:
+                _runs.pop(run.run_id, None)
+                raise HTTPException(
+                    409,
+                    "The saved output is not valid for this dataset. Run a fresh audit first.",
+                )
+            run.requests = {row["case_id"]: row for row in _read_csv(source)}
+            run.rows = _read_csv(saved_output)
+            run.output_bytes = saved_output.read_bytes()
+            run.total = run.processed = len(run.requests)
+            run.stage = "Loaded and validated the saved output"
+            run.state = "complete"
+            return run.payload()
         threading.Thread(target=_execute, args=(run,), daemon=True).start()
     return run.payload()
 

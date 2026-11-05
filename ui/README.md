@@ -4,6 +4,8 @@ The local interface uses React, TypeScript, and Vite. FastAPI serves the product
 
 The root URL is an editorial project landing page. The **Open audit workspace** action and `/workspace` route lead to the same React review interface and same FastAPI API; they do not use a separate demo implementation.
 
+On the overview, **Open validated output** loads the repository's existing `output.csv` only after revalidating it against the current participant dataset. This opens the case register immediately for a presentation. **Audit all requests** runs the engine again; scanned evidence requires Tesseract to be available through `TESSERACT_CMD` or `PATH`.
+
 ## Run the built interface
 
 From the repository root, install the optional Python dependencies and build the frontend once:
