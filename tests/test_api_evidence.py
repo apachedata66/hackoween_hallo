@@ -18,6 +18,7 @@ from ghostdata.api import app as api
 def _run_with_image(
     tmp_path: Path, *, cited: bool = True, captured_at: str = "2026-01-01T00:00:00Z"
 ) -> tuple[api.AuditRun, Path]:
+    evidence_id = "evidence_01" if cited else "evidence_02"
     image = tmp_path / "evidence" / "images" / "source.png"
     image.parent.mkdir(parents=True)
     image.write_bytes(b"fixture image bytes")
@@ -28,7 +29,7 @@ def _run_with_image(
         writer.writeheader()
         writer.writerow(
             {
-                "file_id": "evidence_01",
+                "file_id": evidence_id,
                 "file_path": "evidence/images/source.png",
                 "origin": "synthetic test fixture",
                 "captured_at": captured_at,
@@ -38,7 +39,6 @@ def _run_with_image(
     run = api.AuditRun("run-test", "full", tmp_path / "requests.csv")
     run.state = "complete"
     run.requests = {"case_01": {"case_id": "case_01", "audit_at": "2026-01-02T00:00:00Z"}}
-    evidence_id = "evidence_01" if cited else "evidence_02"
     run.rows = [
         {
             "case_id": "case_01",

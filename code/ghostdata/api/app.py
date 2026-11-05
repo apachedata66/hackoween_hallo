@@ -171,6 +171,7 @@ def health() -> dict[str, Any]:
     root = dataset_dir()
     required = [
         "deletion_requests.csv",
+        "sample_deletion_requests.csv",
         "user_identities.csv",
         "user_audit_log.csv",
         "system_activity.csv",
@@ -184,12 +185,14 @@ def health() -> dict[str, Any]:
     }
     request_file = root / "deletion_requests.csv"
     sample_file = root / "sample_deletion_requests.csv"
+    request_count = len(_read_csv(request_file)) if request_file.is_file() else 0
+    sample_count = len(_read_csv(sample_file)) if sample_file.is_file() else 0
     return {
-        "ready": all(present.values()),
+        "ready": all(present.values()) and request_count > 0 and sample_count > 0,
         "dataset_label": root.name if root.exists() else "Dataset not found",
         "files": present,
-        "request_count": len(_read_csv(request_file)) if request_file.is_file() else 0,
-        "sample_count": len(_read_csv(sample_file)) if sample_file.is_file() else 0,
+        "request_count": request_count,
+        "sample_count": sample_count,
     }
 
 

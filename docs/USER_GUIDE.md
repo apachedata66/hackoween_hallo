@@ -38,7 +38,7 @@ Push-Location ui; npm install; npm run build; Pop-Location
 python -m uvicorn ghostdata.api.app:app --app-dir code --host 127.0.0.1 --port 8765
 ```
 
-Open `http://127.0.0.1:8765`. Start a full audit or a public sample run. The progress panel reflects the CLI's reported request counts, elapsed time, estimated remaining time, and warnings. When a run passes validation, filter and search the case list, inspect a case and its evidence, then download the validated CSV. Identifiers are masked by default and can be revealed for the selected case. Evidence created after the case cutoff is not shown as verdict evidence.
+Open `http://127.0.0.1:8765`. Start a full audit or a public sample run. The progress panel reflects the CLI's reported request counts, elapsed time, estimated remaining time, and warnings. The overview checks each required dataset input and, after a validated run, shows the outcome distribution and a priority queue of incomplete cases. The case register supports live search, status filters, risk and date sorting, paging, and export of the current filtered view. Register exports keep email addresses masked. Open a case to inspect its steps and evidence, then download the validated full output when ready. Identifiers are masked by default and can be revealed for the selected case. Evidence created after the case cutoff is not shown as verdict evidence.
 
 ## Understanding results
 
@@ -57,4 +57,4 @@ The previous workflow status is informational. The audit uses evidence at `audit
 | Output failed validation | Read each reported row and fix ordering, evidence references, or status-specific steps before submission. |
 | A case ID was not found | Confirm it exists in the selected request CSV. |
 
-For a contract-only check, run `python -m unittest discover -s tests -v`. The full audit command becomes usable once the evidence provider is integrated.
+For the project checks, run `python -m pytest` from the repository root. The audit uses the integrated local evidence provider and holds cases for review when evidence cannot support a safe result.

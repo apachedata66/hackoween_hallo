@@ -600,6 +600,14 @@ function App() {
 
               {run?.state === 'complete' && <RunSummary run={run} onDownload={() => window.location.assign(apiPath(`/api/runs/${run.run_id}/output`))} />}
 
+              {currentPage === 'overview' && <DashboardInsights
+                health={health}
+                run={run}
+                cases={cases}
+                onFilterStatus={(status) => { setFilter(status); setQuery(''); setWorkspaceView('cases') }}
+                onOpenCase={openCase}
+              />}
+
               {run?.state === 'review_required' && <div className="panel review-required-panel">
                 <div className="review-required-heading"><AlertTriangle size={17} /><strong>Evidence review needed</strong></div>
                 <p>The audit withheld the result because at least one case could not be supported with cutoff-eligible resource evidence. Review the listed cases and source files before using an output.</p>
@@ -812,6 +820,96 @@ function RunSummary({ run, onDownload }: { run: AuditRun; onDownload: () => void
   </section>
 }
 
+function DashboardInsights({
+  health,
+  run,
+  cases,
+  onFilterStatus,
+  onOpenCase,
+}: {
+  health: Health | null
+  run: AuditRun | null
+  cases: CaseSummary[]
+  onFilterStatus: (status: FilterStatus) => void
+  onOpenCase: (caseId: string) => void
+}) {
+  if (run?.state !== 'complete') {
+    const files = health?.files ?? {}
+    const labels: Record<string, string> = {
+      'deletion_requests.csv': 'Evaluation requests',
+      'sample_deletion_requests.csv': 'Public examples',
+      'user_identities.csv': 'Current identity snapshot',
+      'user_audit_log.csv': 'Identity history',
+      'system_activity.csv': 'System activity',
+      'deletion_rules.csv': 'Deletion policy',
+      'evidence_files.csv': 'Evidence manifest',
+      evidence: 'Evidence sources',
+    }
+    const presentFile = (name: string) => name === 'sample_deletion_requests.csv'
+      ? Boolean(health?.sample_count)
+      : Boolean(files[name])
+    const available = Object.keys(labels).filter(presentFile).length
+    const expected = Object.keys(labels).length
+    return <section className="dashboard-insights" aria-label="Dataset readiness and review guide">
+      <div className="panel readiness-panel">
+        <div className="panel-head"><div><Database size={15} aria-hidden="true" /><h2>Dataset readiness</h2></div><span className={`readiness-count${health?.ready ? ' is-ready' : ''}`}>{health ? `${available}/${expected} available` : 'Checking files'}</span></div>
+        <p className="subtle">The audit stays disabled until its participant data and evidence sources are ready.</p>
+        <ul className="readiness-list">{Object.keys(labels).map((name) => {
+          const present = presentFile(name)
+          return <li key={name} className={present ? 'file-ready' : 'file-missing'}>
+            {present ? <CheckCircle2 size={14} aria-hidden="true" /> : <AlertTriangle size={14} aria-hidden="true" />}
+            <span>{labels[name]}</span><b>{health ? present ? 'Ready' : 'Missing' : 'Checking'}</b>
+          </li>
+        })}</ul>
+      </div>
+      <div className="panel review-guide-panel">
+        <div className="eyebrow">A CLEAR REVIEW PATH</div>
+        <h2>From request to evidence</h2>
+        <ol>
+          <li><span>01</span><div><b>Run a sample</b><p>See the workflow on the 32 public examples.</p></div></li>
+          <li><span>02</span><div><b>Open a case</b><p>Read the request, ordered steps, and cutoff eligible evidence.</p></div></li>
+          <li><span>03</span><div><b>Export only validated output</b><p>The full result is available after contract checks pass.</p></div></li>
+        </ol>
+      </div>
+    </section>
+  }
+
+  const counts = run.counts ?? { COMPLETE: 0, INCOMPLETE: 0, NOT_APPLICABLE: 0 }
+  const total = Math.max(run.total, 1)
+  const findings = cases.reduce((sum, item) => sum + item.finding_count, 0)
+  const risks = cases.reduce((sum, item) => sum + item.recreation_count, 0)
+  const queue = cases
+    .filter((item) => item.deletion_status === 'INCOMPLETE')
+    .slice()
+    .sort((a, b) => b.recreation_count - a.recreation_count || b.finding_count - a.finding_count || a.case_id.localeCompare(b.case_id))
+    .slice(0, 5)
+
+  return <section className="dashboard-insights" aria-label="Audit overview">
+    <div className="panel distribution-panel">
+      <div className="panel-head"><div><Activity size={15} aria-hidden="true" /><h2>Outcome distribution</h2></div><span className="subtle">{run.total.toLocaleString()} audited requests</span></div>
+      <div className="outcome-bar" role="img" aria-label={`${counts.COMPLETE} complete, ${counts.INCOMPLETE} incomplete, ${counts.NOT_APPLICABLE} not applicable`}>
+        <span className="outcome-complete" style={{ width: `${counts.COMPLETE / total * 100}%` }} />
+        <span className="outcome-incomplete" style={{ width: `${counts.INCOMPLETE / total * 100}%` }} />
+        <span className="outcome-na" style={{ width: `${counts.NOT_APPLICABLE / total * 100}%` }} />
+      </div>
+      <div className="outcome-legend">
+        {(['COMPLETE', 'INCOMPLETE', 'NOT_APPLICABLE'] as DeletionStatus[]).map((status) => <button key={status} onClick={() => onFilterStatus(status)}>
+          <span className={`legend-dot legend-${status.toLowerCase()}`} />{STATUS[status].label}<b>{counts[status]}</b>
+        </button>)}
+      </div>
+      <div className="insight-foot"><span><FileText size={13} />{findings.toLocaleString()} evidence findings</span><span><Network size={13} />{risks.toLocaleString()} recreation risks</span></div>
+    </div>
+    <div className="panel attention-panel">
+      <div className="panel-head"><div><AlertTriangle size={15} aria-hidden="true" /><h2>Priority review queue</h2></div><button className="text-button" onClick={() => onFilterStatus('INCOMPLETE')}>View all</button></div>
+      {queue.length ? <div className="priority-list">{queue.map((item) => <button className="priority-item" key={item.case_id} onClick={() => onOpenCase(item.case_id)}>
+        <span className="priority-case"><b>{item.case_id}</b><small>{item.email_masked || 'Identity masked'}</small></span>
+        <span className="priority-counts"><b>{item.recreation_count}</b><small>risks</small><i>·</i><b>{item.finding_count}</b><small>findings</small></span>
+        <ChevronRight size={14} aria-hidden="true" />
+      </button>)}</div> : <div className="queue-empty"><CheckCircle2 size={16} />No incomplete cases need review.</div>}
+    </div>
+  </section>
+}
+
 function CaseRegister({
   cases,
   allCases,
@@ -833,6 +931,37 @@ function CaseRegister({
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
   onOpenCase: (caseId: string) => void
 }) {
+  const [sortBy, setSortBy] = useState<'priority' | 'recent' | 'case'>('priority')
+  const [page, setPage] = useState(0)
+  const pageSize = 25
+  const sortedCases = useMemo(() => [...cases].sort((a, b) => {
+    if (sortBy === 'recent') return Date.parse(b.requested_at) - Date.parse(a.requested_at) || a.case_id.localeCompare(b.case_id)
+    if (sortBy === 'case') return a.case_id.localeCompare(b.case_id)
+    const priority = (item: CaseSummary) => (item.deletion_status === 'INCOMPLETE' ? 1000 : 0) + item.recreation_count * 10 + item.finding_count
+    return priority(b) - priority(a) || a.case_id.localeCompare(b.case_id)
+  }), [cases, sortBy])
+  const pageCount = Math.max(1, Math.ceil(sortedCases.length / pageSize))
+  const pageCases = sortedCases.slice(page * pageSize, (page + 1) * pageSize)
+  useEffect(() => setPage(0), [filter, query, sortBy])
+
+  function exportRegister() {
+    const columns = ['case_id', 'deletion_status', 'requested_at_utc', 'audit_at_utc', 'reported_status', 'findings', 'recreation_risks', 'email_masked']
+    const quote = (value: string | number) => `"${String(value).replace(/"/g, '""')}"`
+    const rows = [columns, ...sortedCases.map((item) => [
+      item.case_id, item.deletion_status, item.requested_at, item.audit_at, item.reported_status,
+      item.finding_count, item.recreation_count, item.email_masked || 'Identity masked',
+    ])]
+    const csv = rows.map((row) => row.map(quote).join(',')).join('\r\n')
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'ghost-data-case-register.csv'
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.setTimeout(() => URL.revokeObjectURL(url), 0)
+  }
+
   const tabs: { value: FilterStatus; label: string }[] = [
     { value: 'ALL', label: 'All' },
     { value: 'INCOMPLETE', label: 'Incomplete' },
@@ -843,12 +972,18 @@ function CaseRegister({
 
   return <section className="cases-section" aria-labelledby="cases-title">
     <div className="cases-heading"><div><div className="eyebrow">AUDIT REGISTER</div><h2 id="cases-title">Cases <span className="count-label">{allCases.length.toLocaleString()}</span></h2></div><span className="subtle">Choose a row to inspect its evidence and steps</span></div>
-    <div className="case-toolbar">
-      <form className="searchbox" role="search" onSubmit={onSubmit}>
-        {searching ? <LoaderCircle className="spin" size={14} aria-hidden="true" /> : <Search size={14} aria-hidden="true" />}
-        <input value={query} onChange={(event) => onQuery(event.target.value)} placeholder="Search case ID or email" aria-label="Search by case ID or email" />
-        {query && <button className="clear-search" type="button" aria-label="Clear search" onClick={() => onQuery('')}><X size={13} /></button>}
-      </form>
+    <div className="case-toolbar case-toolbar-expanded">
+      <div className="register-tools">
+        <form className="searchbox" role="search" onSubmit={onSubmit}>
+          {searching ? <LoaderCircle className="spin" size={14} aria-hidden="true" /> : <Search size={14} aria-hidden="true" />}
+          <input value={query} onChange={(event) => onQuery(event.target.value)} placeholder="Search case ID or email" aria-label="Search by case ID or email" />
+          {query && <button className="clear-search" type="button" aria-label="Clear search" onClick={() => onQuery('')}><X size={13} /></button>}
+        </form>
+        <label className="sort-control"><span>Sort</span><select aria-label="Sort cases" value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)}>
+          <option value="priority">Highest risk</option><option value="recent">Newest request</option><option value="case">Case ID</option>
+        </select></label>
+        <button className="secondary-button export-register" disabled={!sortedCases.length} onClick={exportRegister}><ArrowDownToLine size={13} />Export view</button>
+      </div>
       <div className="filter-group" role="group" aria-label="Filter cases by audit status">
         {tabs.map((tab) => <button key={tab.value} className={filter === tab.value ? 'filter-active' : ''} aria-pressed={filter === tab.value} onClick={() => onFilter(tab.value)}>
           {tab.label}<span className="filter-count">{countFor(tab.value)}</span>
@@ -859,7 +994,7 @@ function CaseRegister({
       <table>
         <thead><tr><th scope="col">CASE</th><th scope="col">REQUESTED (UTC)</th><th scope="col">AUDIT CUTOFF (UTC)</th><th scope="col">AUDIT STATUS</th><th scope="col" className="number-cell">FINDINGS</th><th scope="col" className="number-cell">RECREATION RISKS</th><th scope="col"><span className="sr-only">Open case</span></th></tr></thead>
         <tbody>
-          {cases.map((item) => <tr key={item.case_id} tabIndex={0} aria-label={`Open ${item.case_id}, ${STATUS[item.deletion_status].label}`} onClick={() => onOpenCase(item.case_id)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onOpenCase(item.case_id) } }}>
+          {pageCases.map((item) => <tr key={item.case_id} tabIndex={0} aria-label={`Open ${item.case_id}, ${STATUS[item.deletion_status].label}`} onClick={() => onOpenCase(item.case_id)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onOpenCase(item.case_id) } }}>
             <td><b>{item.case_id}</b><span className="case-email">{item.email_masked || 'Identity masked'}</span></td>
             <td>{formatUtc(item.requested_at)}</td>
             <td>{formatUtc(item.audit_at)}</td>
@@ -868,11 +1003,14 @@ function CaseRegister({
             <td className="number-cell">{item.recreation_count}</td>
             <td><ChevronRight className="row-chevron" size={15} aria-hidden="true" /></td>
           </tr>)}
-          {cases.length === 0 && <tr><td className="table-empty" colSpan={7}>{searching ? 'Searching…' : query ? 'No cases match this search.' : 'No cases match this filter.'}</td></tr>}
+          {sortedCases.length === 0 && <tr><td className="table-empty" colSpan={7}>{searching ? 'Searching…' : query ? 'No cases match this search.' : 'No cases match this filter.'}</td></tr>}
         </tbody>
       </table>
     </div>
-    <div className="table-foot">Showing {cases.length.toLocaleString()} of {allCases.length.toLocaleString()} cases</div>
+    <div className="table-pagination">
+      <span>Showing {sortedCases.length ? (page * pageSize + 1).toLocaleString() : 0}–{Math.min((page + 1) * pageSize, sortedCases.length).toLocaleString()} of {sortedCases.length.toLocaleString()} matching cases</span>
+      <div><button className="page-button" disabled={page === 0} onClick={() => setPage((value) => Math.max(0, value - 1))}><ArrowLeft size={13} />Previous</button><span>Page {page + 1} of {pageCount}</span><button className="page-button" disabled={page + 1 >= pageCount} onClick={() => setPage((value) => Math.min(pageCount - 1, value + 1))}>Next<ArrowRight size={13} /></button></div>
+    </div>
   </section>
 }
 

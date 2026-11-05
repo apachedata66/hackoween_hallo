@@ -1741,3 +1741,60 @@ branch=codex/integration
 repo_root=C:\Users\Asus\Desktop\hallowen
 worktree=main
 parent_agent=none
+## [2026-11-05T06:29:11Z] Confirm Vercel environment variables
+
+User Prompt (verbatim, secrets redacted):
+is there any env?
+
+Agent Response Summary:
+Checked the current Vercel and app configuration. The Vercel UI needs VITE_API_BASE_URL pointing to a separately hosted HTTPS API; the API host needs GHOSTDATA_CORS_ORIGINS for the Vercel site. The optional LLM variables are not needed for the deterministic app.
+
+Actions:
+* Fetched latest Git refs and inspected .env.example, vercel.json, docs/DEPLOYMENT.md, and API configuration.
+
+Context:
+tool=Codex desktop
+model=GPT-6
+branch=codex/integration
+repo_root=C:\Users\Asus\Desktop\hallowen
+worktree=main
+parent_agent=none
+
+
+## [2026-11-05T07:14:16Z] Add actionable audit dashboard features
+
+User Prompt (verbatim, secrets redacted):
+there are not many features in our software it seems blank implement some features and make all the features working unlike earlier
+
+Agent Response Summary:
+Expanded the workspace with a dataset readiness checklist and, after a validated run, an outcome distribution and clickable priority queue for incomplete cases. Added risk/date/ID sorting, 25-row pagination, and a masked CSV export for the current case-register view. Updated the API readiness check and user guide; the existing warm visual style is retained.
+
+Actions:
+* Ran the React production build successfully.
+* Compiled the API package and verified health reports 518 requests, 32 public examples, and all required files present.
+* Smoke-tested saved-output loading, case listing, real case search, case details, evidence lookup, and validated CSV download; evidence_89 was available at the case_100 cutoff and output returned HTTP 200.
+* Rebuilt code.zip; package secret scan and required-file checks passed.
+
+Context:
+tool=Codex desktop
+model=GPT-6
+branch=codex/integration
+repo_root=C:\Users\Asus\Desktop\hallowen
+worktree=main
+parent_agent=none
+
+## [2026-11-05T07:18:39Z] Verification addendum for dashboard feature work
+
+Follow-up verification for the preceding user request:
+* The full Python test suite passed after fixing the existing evidence fixture mismatch.
+* The React production build passed.
+* The local API and rebuilt frontend returned HTTP 200; saved-output, status-filtered case listing, real case search, case detail, cited evidence, and CSV download were smoke-tested successfully.
+* code.zip was rebuilt with the updated API, documentation, and frontend bundle.
+
+Context:
+tool=Codex desktop
+model=GPT-6
+branch=codex/integration
+repo_root=C:\Users\Asus\Desktop\hallowen
+worktree=main
+parent_agent=none
