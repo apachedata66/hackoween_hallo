@@ -1820,3 +1820,42 @@ branch=codex/integration
 repo_root=C:\Users\Asus\Desktop\hallowen
 worktree=main
 parent_agent=none
+## [2026-11-05T07:43:25Z] Confirm external-data demo support
+
+User Prompt (verbatim, secrets redacted):
+cant we run this test on external data it will be good for the demo
+
+Agent Response Summary:
+Confirmed that the CLI and local API support a separate participant dataset through GHOSTDATA_DATASET. Recommended keeping external demo output separate from the official output.csv and requiring compatible evidence files; accuracy scoring also needs a corresponding gold output. No external data was present to run in this turn.
+
+Actions:
+* Fetched latest branches and inspected dataset path selection, CLI input/output arguments, and the scorer interface.
+
+Context:
+tool=Codex desktop
+model=GPT-6
+branch=codex/integration
+repo_root=C:\Users\Asus\Desktop\hallowen
+worktree=main
+parent_agent=none
+
+## [2026-11-05T13:21:52+05:30] Improve the landing page hierarchy
+
+User Prompt (verbatim, secrets redacted):
+what about landing page u have not improved the landing page
+
+Agent Response Summary:
+Reworked the landing page headline and copy to explain the deletion-audit problem directly, and strengthened its editorial hierarchy and evidence-record presentation. Preserved the warm paper palette, restrained teal, and thin-border style; the production UI build completed successfully.
+
+Actions:
+* Updated ui/src/App.tsx and ui/src/styles.css.
+* Ran npm run build in ui; TypeScript and Vite production build succeeded.
+* Attempted git fetch --all --prune; Git could not write .git/FETCH_HEAD due filesystem permissions.
+
+Context:
+tool=Codex desktop
+model=GPT-6
+branch=codex/integration
+repo_root=C:\Users\Asus\Desktop\hallowen
+worktree=main
+parent_agent=none

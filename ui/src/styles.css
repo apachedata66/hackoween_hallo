@@ -265,3 +265,83 @@
 .hotspot-count{margin-left:auto;color:var(--muted);font-size:9px;white-space:nowrap}
 @media(max-width:760px){.case-title-row{align-items:flex-start;gap:10px}.case-title-actions{align-items:flex-end;flex-direction:column;gap:6px}.report-download{height:30px;font-size:9px;padding:0 7px}.hero-proof{gap:11px}}
 @media(max-width:440px){.case-title-row{flex-direction:column}.case-title-actions{align-items:flex-start;flex-direction:row;flex-wrap:wrap}.hero-proof{justify-content:space-between;gap:8px}.hero-proof b{font-size:10px}.hero-proof small{font-size:8px}}
+
+/* Landing refinement: stronger editorial hierarchy and a more legible evidence folio. */
+.landing-nav { height: 82px; }
+.landing-brand-mark { width: 38px; height: 38px; background: #fff; }
+.landing-hero { grid-template-columns: minmax(0, 1.08fr) minmax(400px, .92fr); gap: 56px; padding-top: 82px; }
+.hero-copy { padding-bottom: 60px; }
+.landing-eyebrow { gap: 10px; font-size: 9px; letter-spacing: 1.35px; }
+.hero-copy h1 { max-width: 630px; margin: 25px 0 19px; font-size: clamp(46px, 5.05vw, 63px); line-height: 1.055; letter-spacing: -2.25px; }
+.hero-intro { max-width: 515px; font-size: 15px; line-height: 1.75; }
+.hero-actions { margin-top: 29px; gap: 24px; }
+.hero-primary { height: 44px; padding: 0 17px; }
+.hero-proof { gap: 18px; margin-top: 25px; padding-top: 16px; border-top: 1px solid var(--line); }
+.hero-proof b { font-size: 13px; font-variant-numeric: tabular-nums; }
+.hero-proof small { font-size: 9px; }
+.service-note { margin-top: 17px; }
+.hero-visual { max-width: 550px; padding: 25px 0 40px 20px; }
+.hero-visual::before { inset: 35px 7px 55px 30px; background: #f0eee8; }
+.hero-visual::after { content: ""; position: absolute; inset: 25px 15px 47px 38px; border: 1px solid #e5e2da; background: #f5f3ee; }
+.visual-caption { margin: 0 18px 10px 24px; font-size: 9px; letter-spacing: .8px; }
+.record-sheet { min-height: 414px; padding: 23px 24px 16px; }
+.record-sheet-head { padding-bottom: 19px; }
+.record-sheet-head strong { font-size: 15px; }
+.identity-chain { margin: 18px 0 20px; }
+.identity-node { padding: 11px 10px; }
+.evidence-lanes { margin: 12px 0 17px; }
+.evidence-lane { min-height: 41px; font-size: 10px; }
+.cutoff-stamp { padding: 10px; }
+.record-sheet-foot { padding-top: 16px; font-size: 8px; }
+.visual-footnote { margin: 12px 0 0 8px; gap: 8px; font-size: 9px; }
+.visual-footnote i { color: #a4a6a1; font-style: normal; }
+.hero-baseline { margin-top: 1px; padding-top: 15px; padding-bottom: 14px; }
+.landing-method { padding-top: 78px; padding-bottom: 76px; }
+.method-heading { margin-bottom: 30px; }
+.method-heading h2, .output-copy h2 { font-size: 32px; line-height: 1.2; letter-spacing: -.8px; }
+.method-heading > p { max-width: 370px; font-size: 12px; line-height: 1.75; }
+.method-item { min-height: 215px; padding: 22px 23px 19px; }
+.method-item h3 { margin-top: 20px; font-size: 15px; }
+.method-item p { font-size: 11px; line-height: 1.7; }
+.landing-output { grid-template-columns: 1fr .9fr; gap: 76px; padding: 52px 0 72px; }
+.output-copy h2 { font-size: 35px; margin-top: 16px; }
+.output-copy > p { font-size: 12px; line-height: 1.8; }
+.output-sheet { padding: 0 20px; }
+.output-row { padding: 15px 0; }
+.output-row strong { font-size: 12px; }
+.output-row small { font-size: 9px; }
+.landing-footer { min-height: 62px; }
+
+@media (max-width: 1000px) {
+  .landing-hero { grid-template-columns: minmax(0, 1fr) minmax(340px, .9fr); gap: 30px; padding-top: 60px; }
+  .hero-copy h1 { font-size: clamp(42px, 5.2vw, 54px); letter-spacing: -1.8px; }
+  .hero-proof { gap: 12px; }
+  .record-sheet { min-height: 400px; }
+  .landing-method { padding-top: 60px; padding-bottom: 60px; }
+  .landing-output { gap: 38px; }
+}
+@media (max-width: 700px) {
+  .landing-nav { height: 66px; }
+  .landing-hero { grid-template-columns: 1fr; gap: 8px; padding-top: 43px; }
+  .hero-copy { padding-bottom: 6px; }
+  .hero-copy h1 { max-width: 570px; font-size: clamp(39px, 9.4vw, 52px); line-height: 1.07; letter-spacing: -1.55px; }
+  .hero-intro { max-width: 560px; font-size: 13px; line-height: 1.7; }
+  .hero-proof { max-width: 520px; }
+  .hero-visual { justify-self: center; max-width: 500px; padding: 20px 0 34px 14px; }
+  .hero-visual::before { inset: 29px 4px 48px 23px; }
+  .hero-visual::after { inset: 20px 11px 41px 30px; }
+  .record-sheet { min-height: 0; }
+  .landing-method { padding-top: 50px; padding-bottom: 48px; }
+  .method-heading h2 { font-size: 27px; }
+  .method-item { min-height: 0; padding: 18px; }
+  .method-item h3 { margin-top: 13px; }
+  .landing-output { grid-template-columns: 1fr; gap: 25px; padding: 37px 0 43px; }
+  .output-copy h2 { font-size: 30px; }
+}
+@media (max-width: 400px) {
+  .landing-nav, .landing-hero, .landing-method, .landing-output, .landing-footer { width: calc(100% - 28px); }
+  .hero-proof { gap: 7px; }
+  .hero-proof b { font-size: 10px; }
+  .hero-proof small { font-size: 8px; }
+  .record-sheet { padding: 17px 13px 14px; }
+}

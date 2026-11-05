@@ -776,8 +776,8 @@ function LandingPage({
       <section className="landing-hero">
         <div className="hero-copy">
           <div className="landing-eyebrow"><span className="eyebrow-rule" /> PRIVACY OPERATIONS <span>·</span> EVIDENCE REVIEW</div>
-          <h1>A deletion request is a claim.<br /><em>The record is the evidence.</em></h1>
-          <p className="hero-intro">Ghost Data traces current and historical identifiers across systems, rebuilds their state at the audit cutoff, and turns the evidence into a reviewable answer.</p>
+          <h1>A “complete” status<br /><em>is only a claim.</em></h1>
+          <p className="hero-intro">Follow current and past identifiers through databases, replicas, logs, support files, exports, indexes, and restore paths. Ghost Data rebuilds what existed at the audit cutoff and shows the evidence behind each next step.</p>
           <div className="hero-actions">
             <button className="primary-button hero-primary" onClick={onOpenWorkspace}>Open audit workspace <ArrowRight size={15} aria-hidden="true" /></button>
             <button className="hero-text-action" onClick={onStartSample}>Run the 32 public examples <ArrowRight size={14} aria-hidden="true" /></button>
@@ -798,7 +798,7 @@ function LandingPage({
         </div>
 
         <div className="hero-visual" aria-label="Audit workflow diagram">
-          <div className="visual-caption"><span>THE AUDIT RECORD</span><span>01 — 04</span></div>
+          <div className="visual-caption"><span>CASE REVIEW / EVIDENCE MAP</span><span>01 — 04</span></div>
           <div className="record-sheet">
             <div className="record-sheet-head">
               <div><span className="field-label">SUBJECT LINKAGE</span><strong>One identity, many traces</strong></div>
@@ -812,20 +812,20 @@ function LandingPage({
             <div className="record-rule" />
             <div className="evidence-lanes">
               <div className="evidence-lane"><span className="lane-index">01</span><Database size={15} aria-hidden="true" /><span>Primary & replica stores</span><span className="lane-mark" /></div>
-              <div className="evidence-lane"><span className="lane-index">02</span><FileText size={15} aria-hidden="true" /><span>Logs, support & exports</span><span className="lane-mark" /></div>
+              <div className="evidence-lane"><span className="lane-index">02</span><FileText size={15} aria-hidden="true" /><span>Logs, support, exports & indexes</span><span className="lane-mark" /></div>
               <div className="evidence-lane"><span className="lane-index">03</span><Network size={15} aria-hidden="true" /><span>Sync & restore paths</span><span className="lane-mark" /></div>
             </div>
             <div className="cutoff-stamp"><Clock3 size={14} aria-hidden="true" /><span>RECONSTRUCTED AT <b className="mono">audit_at</b></span><span className="stamp-line" /></div>
             <div className="record-sheet-foot"><span>FINDINGS</span><ChevronRight size={12} /><span>REMEDIATION</span><ChevronRight size={12} /><span>VERIFICATION</span></div>
           </div>
-          <div className="visual-footnote"><span className="footnote-mark" /> Every conclusion points back to a participant-visible source.</div>
+          <div className="visual-footnote"><span className="footnote-mark" /> Source linked <i>·</i> Cutoff checked <i>·</i> Human reviewed</div>
         </div>
 
         <div className="hero-baseline"><span>GHOST DATA STILL EXISTS</span><span>DELETION AUDIT / 2026</span></div>
       </section>
 
       <section className="landing-method" id="method">
-        <div className="method-heading"><div><div className="landing-eyebrow"><span className="eyebrow-rule" /> A CAREFUL REVIEW, END TO END</div><h2>What happened is more useful<br />than what the workflow said.</h2></div><p>Statuses can say “complete” while replicas, search indexes, backups, or active sync jobs tell a different story.</p></div>
+        <div className="method-heading"><div><div className="landing-eyebrow"><span className="eyebrow-rule" /> A CAREFUL REVIEW, END TO END</div><h2>Check the record.<br />Then show your work.</h2></div><p>A workflow can say “complete” while a replica, search index, backup, or active sync job still holds the person’s data.</p></div>
         <div className="method-grid">
           <article className="method-item"><span className="method-number">01</span><div className="method-icon"><Fingerprint size={17} aria-hidden="true" /></div><h3>Resolve the person</h3><p>Follow current and historical identifiers before searching across the evidence set.</p><span className="method-foot">IDENTITY · HISTORY · ALIASES</span></article>
           <article className="method-item"><span className="method-number">02</span><div className="method-icon"><Waypoints size={17} aria-hidden="true" /></div><h3>Rebuild the state</h3><p>Compare records, replicas, activity and evidence using only what existed by the audit cutoff.</p><span className="method-foot">STORES · FLOWS · RESTORES</span></article>
@@ -834,7 +834,7 @@ function LandingPage({
       </section>
 
       <section className="landing-output" id="deliverable">
-        <div className="output-copy"><div className="landing-eyebrow"><span className="eyebrow-rule" /> BUILT FOR AUDITABILITY</div><h2>A clear answer.<br /><em>And the trail behind it.</em></h2><p>Each case is reviewed against the supplied deletion policy. Reviewers can track proposed follow-up and export masked case reports; source systems are never changed by the app.</p><button className="output-link" onClick={onOpenWorkspace}>Review the workspace <ArrowRight size={14} aria-hidden="true" /></button></div>
+        <div className="output-copy"><div className="landing-eyebrow"><span className="eyebrow-rule" /> BUILT FOR AUDITABILITY</div><h2>A clear answer.<br /><em>And the trail behind it.</em></h2><p>Each case is checked against the supplied deletion policy. Reviewers can inspect cited evidence, track proposed follow-up, and export a masked case report. The app never changes source systems.</p><button className="output-link" onClick={onOpenWorkspace}>Review the workspace <ArrowRight size={14} aria-hidden="true" /></button></div>
         <div className="output-sheet">
           <div className="output-sheet-top"><span>OUTPUT / CSV</span><span className="mono">case_id → result → steps</span></div>
           <div className="output-row"><span className="output-step">01</span><div><strong>Finding</strong><small>What remains, with its evidence source</small></div><BookOpen size={15} aria-hidden="true" /></div>
