@@ -1859,3 +1859,23 @@ branch=codex/integration
 repo_root=C:\Users\Asus\Desktop\hallowen
 worktree=main
 parent_agent=none
+## [2026-11-05T14:01:36+05:30] Add five data-backed workspace sections
+
+User Prompt (verbatim, secrets redacted):
+even now all the features seem very vague and also there is nothing in the dashboard section except overview and case register and even in the case register the content is same please make somthing maning full and dont build fake tabs like case register atleate make 5 section with real features fasstt
+
+Agent Response Summary:
+Expanded the workspace into five data-backed areas: Overview, Case register, Evidence index, System risks, and Remediation queue. Added evidence citations and action details to the case-summary API; the new pages derive source links, repeated system findings, and local operator follow-up tasks from validated run results. Moved run controls and progress back to Overview so the register and new pages have distinct content. The production UI build succeeded.
+
+Actions:
+* Fetched the latest branches before editing.
+* Updated code/ghostdata/api/app.py, ui/src/App.tsx, ui/src/styles.css, and rebuilt ui/dist.
+* Ran npm run build successfully; Python runtime was unavailable for a syntax check in this environment.
+
+Context:
+tool=Codex desktop
+model=GPT-6
+branch=codex/integration
+repo_root=C:\Users\Asus\Desktop\hallowen
+worktree=main
+parent_agent=none
