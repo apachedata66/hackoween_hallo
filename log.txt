@@ -1798,3 +1798,25 @@ branch=codex/integration
 repo_root=C:\Users\Asus\Desktop\hallowen
 worktree=main
 parent_agent=none
+
+## [2026-11-05T07:37:15Z] Add operational case tools and refine the landing page
+
+User Prompt (verbatim, secrets redacted):
+i want some  more actual features that actually solbve this problems and also polish the landing page little bit
+
+Agent Response Summary:
+Added a browser-local checklist for proposed remediation and future verification, plus a masked per-case JSON handoff report. Added a data-backed system risk map from finding systems in incomplete cases and a matching system filter in the case register. Refined the landing page with project scope metrics and clear descriptions of the new operator tools.
+
+Actions:
+* Added finding-system summaries to the case API and dataset readiness validation remains available.
+* Updated the UI and user guides; rebuilt the Vercel frontend and code.zip.
+* Full Python test suite passed; React production build passed.
+* Restarted local app and verified saved-output run, 518 cases, incomplete-system groupings, workspace route, and current JS bundle.
+
+Context:
+tool=Codex desktop
+model=GPT-6
+branch=codex/integration
+repo_root=C:\Users\Asus\Desktop\hallowen
+worktree=main
+parent_agent=none

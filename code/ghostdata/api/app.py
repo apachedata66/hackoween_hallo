@@ -381,6 +381,9 @@ def _case_summary(run: AuditRun, row: dict[str, Any]) -> dict[str, Any]:
             for step in steps
         ),
         "email_masked": _mask(request.get("email", "")),
+        "finding_systems": sorted(
+            {step["system_id"] for step in steps if step["phase"] == "FINDING"}
+        ),
     }
 
 

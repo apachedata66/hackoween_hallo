@@ -76,6 +76,7 @@ type CaseSummary = {
   finding_count: number
   recreation_count: number
   email_masked: string
+  finding_systems: string[]
 }
 
 type AuditStep = {
@@ -119,6 +120,20 @@ type CasePage = { cases: CaseSummary[]; total: number }
 type SearchPage = { cases: CaseSummary[] }
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/+$/, '')
+const FOLLOWUP_STORAGE_KEY = 'ghostdata-followups-v1'
+
+function readFollowupChecks(): Record<string, number[]> {
+  try {
+    const parsed: unknown = JSON.parse(window.localStorage.getItem(FOLLOWUP_STORAGE_KEY) ?? '{}')
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
+    return Object.fromEntries(Object.entries(parsed).flatMap(([caseId, values]) => {
+      if (!Array.isArray(values)) return []
+      return [[caseId, values.filter((value): value is number => Number.isInteger(value) && value > 0)]]
+    }))
+  } catch {
+    return {}
+  }
+}
 
 function apiPath(path: string): string {
   if (/^https?:\/\//i.test(path)) return path
@@ -221,6 +236,7 @@ function App() {
   const [cases, setCases] = useState<CaseSummary[]>([])
   const [casesLoading, setCasesLoading] = useState(false)
   const [filter, setFilter] = useState<FilterStatus>('ALL')
+  const [systemFilter, setSystemFilter] = useState('ALL')
   const [query, setQuery] = useState('')
   const [searchCases, setSearchCases] = useState<CaseSummary[] | null>(null)
   const [searching, setSearching] = useState(false)
@@ -232,6 +248,8 @@ function App() {
   const [evidence, setEvidence] = useState<Evidence | null>(null)
   const [evidenceError, setEvidenceError] = useState('')
   const [evidenceReload, setEvidenceReload] = useState(0)
+  const [followupChecks, setFollowupChecks] = useState<Record<string, number[]>>(readFollowupChecks)
+  const [exportingCase, setExportingCase] = useState(false)
   const [starting, setStarting] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -398,11 +416,24 @@ function App() {
     return () => window.clearTimeout(timeout)
   }, [toast])
 
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(FOLLOWUP_STORAGE_KEY, JSON.stringify(followupChecks))
+    } catch {
+      // The current tab still tracks progress when browser storage is unavailable.
+    }
+  }, [followupChecks])
+
   const activeRun = run !== null && (run.state === 'queued' || run.state === 'running')
   const visibleCases = useMemo(() => {
     const base = query.trim() ? searchCases ?? [] : cases
-    return base.filter((item) => filter === 'ALL' || item.deletion_status === filter)
-  }, [cases, filter, query, searchCases])
+    return base.filter((item) => (filter === 'ALL' || item.deletion_status === filter)
+      && (systemFilter === 'ALL' || item.finding_systems.includes(systemFilter)))
+  }, [cases, filter, query, searchCases, systemFilter])
+  const availableSystems = useMemo(
+    () => [...new Set(cases.flatMap((item) => item.finding_systems))].sort((a, b) => a.localeCompare(b)),
+    [cases],
+  )
 
   async function startRun(mode: 'full' | 'samples' | 'saved') {
     if (activeRun || starting) return
@@ -416,6 +447,7 @@ function App() {
     setSelectedCaseId('')
     setRun(null)
     setFilter('ALL')
+    setSystemFilter('ALL')
     try {
       const result = await api<AuditRun>('/api/runs', {
         method: 'POST',
@@ -449,6 +481,57 @@ function App() {
       setToast(error instanceof Error ? error.message : 'The request could not be refreshed.')
     } finally {
       setCaseLoading(false)
+    }
+  }
+
+  function toggleFollowup(caseId: string, stepNo: number) {
+    setFollowupChecks((current) => {
+      const selected = new Set(current[caseId] ?? [])
+      if (selected.has(stepNo)) selected.delete(stepNo)
+      else selected.add(stepNo)
+      return { ...current, [caseId]: [...selected].sort((a, b) => a - b) }
+    })
+  }
+
+  function resetFollowups(caseId: string) {
+    setFollowupChecks((current) => ({ ...current, [caseId]: [] }))
+  }
+
+  async function exportCaseReport() {
+    if (!selectedCaseId || !run || exportingCase) return
+    setExportingCase(true)
+    try {
+      const safeCase = await api<CaseDetail>(
+        `/api/runs/${run.run_id}/cases/${selectedCaseId}?reveal=false`,
+      )
+      const followupSteps = safeCase.steps.filter((step) =>
+        step.phase === 'REMEDIATION' || (step.phase === 'VERIFICATION' && !step.evidence_id),
+      )
+      const report = {
+        report_version: 1,
+        exported_at_utc: new Date().toISOString(),
+        case_id: safeCase.case_id,
+        deletion_status: safeCase.deletion_status,
+        request: safeCase.request,
+        steps: safeCase.steps,
+        operations_tracking: {
+          task_step_numbers: followupSteps.map((step) => step.step_no),
+          completed_step_numbers: followupChecks[safeCase.case_id] ?? [],
+          note: 'Checklist marks are self-attested in this browser. They do not change the audit verdict or source records.',
+        },
+      }
+      const blobUrl = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' }))
+      const link = document.createElement('a')
+      link.href = blobUrl
+      link.download = `${safeCase.case_id}-audit-review.json`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 0)
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : 'The masked case report could not be exported.')
+    } finally {
+      setExportingCase(false)
     }
   }
 
@@ -549,6 +632,11 @@ function App() {
               onReveal={revealIdentifiers}
               onOpenEvidence={setSelectedEvidenceId}
               onRetry={() => setCaseReload((value) => value + 1)}
+              onExportReport={() => void exportCaseReport()}
+              exportingReport={exportingCase}
+              completedFollowups={followupChecks[selectedCaseId] ?? []}
+              onToggleFollowup={(stepNo) => toggleFollowup(selectedCaseId, stepNo)}
+              onResetFollowups={() => resetFollowups(selectedCaseId)}
             />
           ) : (
             <>
@@ -604,7 +692,8 @@ function App() {
                 health={health}
                 run={run}
                 cases={cases}
-                onFilterStatus={(status) => { setFilter(status); setQuery(''); setWorkspaceView('cases') }}
+                onFilterStatus={(status) => { setFilter(status); setSystemFilter('ALL'); setQuery(''); setWorkspaceView('cases') }}
+                onFilterSystem={(systemId) => { setFilter('INCOMPLETE'); setSystemFilter(systemId); setQuery(''); setWorkspaceView('cases') }}
                 onOpenCase={openCase}
               />}
 
@@ -625,7 +714,10 @@ function App() {
                 filter={filter}
                 query={query}
                 searching={searching}
+                systemFilter={systemFilter}
+                systems={availableSystems}
                 onFilter={setFilter}
+                onSystemFilter={setSystemFilter}
                 onQuery={setQuery}
                 onSubmit={handleSearchSubmit}
                 onOpenCase={openCase}
@@ -674,7 +766,7 @@ function LandingPage({
         <span><strong>Ghost Data</strong><small>Deletion audit</small></span>
       </a>
       <nav aria-label="Project navigation">
-        <a href="#method">Method</a>
+        <a href="#method">Review tools</a>
         <a href="#deliverable">What it produces</a>
       </nav>
       <button className="landing-nav-action" onClick={onOpenWorkspace}>Open workspace <ArrowUpRight size={14} aria-hidden="true" /></button>
@@ -689,6 +781,13 @@ function LandingPage({
           <div className="hero-actions">
             <button className="primary-button hero-primary" onClick={onOpenWorkspace}>Open audit workspace <ArrowRight size={15} aria-hidden="true" /></button>
             <button className="hero-text-action" onClick={onStartSample}>Run the 32 public examples <ArrowRight size={14} aria-hidden="true" /></button>
+          </div>
+          <div className="hero-proof" aria-label="Project scope">
+            <span><b>{(health?.request_count ?? 518).toLocaleString()}</b><small>requests audited</small></span>
+            <i />
+            <span><b>{health?.sample_count ?? 32}</b><small>public examples</small></span>
+            <i />
+            <span><b>Cutoff-aware</b><small>evidence review</small></span>
           </div>
           <div className="service-note" role="status">
             <span className={`service-indicator ${health?.ready ? 'is-ready' : ''}`} />
@@ -730,17 +829,18 @@ function LandingPage({
         <div className="method-grid">
           <article className="method-item"><span className="method-number">01</span><div className="method-icon"><Fingerprint size={17} aria-hidden="true" /></div><h3>Resolve the person</h3><p>Follow current and historical identifiers before searching across the evidence set.</p><span className="method-foot">IDENTITY · HISTORY · ALIASES</span></article>
           <article className="method-item"><span className="method-number">02</span><div className="method-icon"><Waypoints size={17} aria-hidden="true" /></div><h3>Rebuild the state</h3><p>Compare records, replicas, activity and evidence using only what existed by the audit cutoff.</p><span className="method-foot">STORES · FLOWS · RESTORES</span></article>
-          <article className="method-item"><span className="method-number">03</span><div className="method-icon"><ClipboardCheck size={17} aria-hidden="true" /></div><h3>Show the next step</h3><p>Return ordered findings, policy-aware remediation and checks a reviewer can verify.</p><span className="method-foot">EVIDENCE · POLICY · OUTPUT</span></article>
+          <article className="method-item"><span className="method-number">03</span><div className="method-icon"><ClipboardCheck size={17} aria-hidden="true" /></div><h3>Track the handoff</h3><p>Record follow-up progress in the review workspace and export a masked case report.</p><span className="method-foot">CHECKLIST · CASE REPORT · CSV</span></article>
         </div>
       </section>
 
       <section className="landing-output" id="deliverable">
-        <div className="output-copy"><div className="landing-eyebrow"><span className="eyebrow-rule" /> BUILT FOR AUDITABILITY</div><h2>A clear answer.<br /><em>And the trail behind it.</em></h2><p>Each case is reviewed against the supplied deletion policy. Retention requirements and account tombstones remain in scope, and proposed actions never run against source systems.</p><button className="output-link" onClick={onOpenWorkspace}>Review the workspace <ArrowRight size={14} aria-hidden="true" /></button></div>
+        <div className="output-copy"><div className="landing-eyebrow"><span className="eyebrow-rule" /> BUILT FOR AUDITABILITY</div><h2>A clear answer.<br /><em>And the trail behind it.</em></h2><p>Each case is reviewed against the supplied deletion policy. Reviewers can track proposed follow-up and export masked case reports; source systems are never changed by the app.</p><button className="output-link" onClick={onOpenWorkspace}>Review the workspace <ArrowRight size={14} aria-hidden="true" /></button></div>
         <div className="output-sheet">
           <div className="output-sheet-top"><span>OUTPUT / CSV</span><span className="mono">case_id → result → steps</span></div>
           <div className="output-row"><span className="output-step">01</span><div><strong>Finding</strong><small>What remains, with its evidence source</small></div><BookOpen size={15} aria-hidden="true" /></div>
           <div className="output-row"><span className="output-step">02</span><div><strong>Remediation</strong><small>The complete, ordered policy treatment</small></div><GitBranch size={15} aria-hidden="true" /></div>
           <div className="output-row"><span className="output-step">03</span><div><strong>Verification</strong><small>What must pass after the change</small></div><CircleCheck size={15} aria-hidden="true" /></div>
+          <div className="output-row"><span className="output-step">04</span><div><strong>Case handoff</strong><small>Masked report and local follow-up tracker</small></div><ClipboardCheck size={15} aria-hidden="true" /></div>
           <div className="output-sheet-bottom"><span>DETERMINISTIC RUN</span><span>{health?.sample_count ?? 32} PUBLIC EXAMPLES</span></div>
         </div>
       </section>
@@ -825,12 +925,14 @@ function DashboardInsights({
   run,
   cases,
   onFilterStatus,
+  onFilterSystem,
   onOpenCase,
 }: {
   health: Health | null
   run: AuditRun | null
   cases: CaseSummary[]
   onFilterStatus: (status: FilterStatus) => void
+  onFilterSystem: (systemId: string) => void
   onOpenCase: (caseId: string) => void
 }) {
   if (run?.state !== 'complete') {
@@ -883,6 +985,14 @@ function DashboardInsights({
     .slice()
     .sort((a, b) => b.recreation_count - a.recreation_count || b.finding_count - a.finding_count || a.case_id.localeCompare(b.case_id))
     .slice(0, 5)
+  const systemCounts = new Map<string, number>()
+  for (const item of cases) {
+    if (item.deletion_status !== 'INCOMPLETE') continue
+    for (const systemId of item.finding_systems) systemCounts.set(systemId, (systemCounts.get(systemId) ?? 0) + 1)
+  }
+  const systemHotspots = [...systemCounts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 5)
 
   return <section className="dashboard-insights" aria-label="Audit overview">
     <div className="panel distribution-panel">
@@ -907,6 +1017,13 @@ function DashboardInsights({
         <ChevronRight size={14} aria-hidden="true" />
       </button>)}</div> : <div className="queue-empty"><CheckCircle2 size={16} />No incomplete cases need review.</div>}
     </div>
+    <div className="panel system-hotspots-panel">
+      <div className="panel-head"><div><Network size={15} aria-hidden="true" /><h2>Recurring problem systems</h2></div><span className="subtle">incomplete cases</span></div>
+      <p className="subtle">Systems attached to evidence-backed findings. Select one to focus the case register.</p>
+      {systemHotspots.length ? <div className="system-hotspot-list">{systemHotspots.map(([systemId, count]) => <button key={systemId} onClick={() => onFilterSystem(systemId)}>
+        <span className="mono">{systemId}</span><span className="hotspot-count">{count} {count === 1 ? 'case' : 'cases'}</span><ArrowRight size={13} aria-hidden="true" />
+      </button>)}</div> : <div className="queue-empty"><CheckCircle2 size={16} />No recurring system findings in this run.</div>}
+    </div>
   </section>
 }
 
@@ -916,7 +1033,10 @@ function CaseRegister({
   filter,
   query,
   searching,
+  systemFilter,
+  systems,
   onFilter,
+  onSystemFilter,
   onQuery,
   onSubmit,
   onOpenCase,
@@ -926,7 +1046,10 @@ function CaseRegister({
   filter: FilterStatus
   query: string
   searching: boolean
+  systemFilter: string
+  systems: string[]
   onFilter: (value: FilterStatus) => void
+  onSystemFilter: (value: string) => void
   onQuery: (value: string) => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
   onOpenCase: (caseId: string) => void
@@ -942,7 +1065,7 @@ function CaseRegister({
   }), [cases, sortBy])
   const pageCount = Math.max(1, Math.ceil(sortedCases.length / pageSize))
   const pageCases = sortedCases.slice(page * pageSize, (page + 1) * pageSize)
-  useEffect(() => setPage(0), [filter, query, sortBy])
+  useEffect(() => setPage(0), [filter, query, sortBy, systemFilter])
 
   function exportRegister() {
     const columns = ['case_id', 'deletion_status', 'requested_at_utc', 'audit_at_utc', 'reported_status', 'findings', 'recreation_risks', 'email_masked']
@@ -968,7 +1091,8 @@ function CaseRegister({
     { value: 'COMPLETE', label: 'Complete' },
     { value: 'NOT_APPLICABLE', label: 'Not applicable' },
   ]
-  const countFor = (status: FilterStatus) => status === 'ALL' ? allCases.length : allCases.filter((item) => item.deletion_status === status).length
+  const systemCases = systemFilter === 'ALL' ? allCases : allCases.filter((item) => item.finding_systems.includes(systemFilter))
+  const countFor = (status: FilterStatus) => status === 'ALL' ? systemCases.length : systemCases.filter((item) => item.deletion_status === status).length
 
   return <section className="cases-section" aria-labelledby="cases-title">
     <div className="cases-heading"><div><div className="eyebrow">AUDIT REGISTER</div><h2 id="cases-title">Cases <span className="count-label">{allCases.length.toLocaleString()}</span></h2></div><span className="subtle">Choose a row to inspect its evidence and steps</span></div>
@@ -981,6 +1105,9 @@ function CaseRegister({
         </form>
         <label className="sort-control"><span>Sort</span><select aria-label="Sort cases" value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)}>
           <option value="priority">Highest risk</option><option value="recent">Newest request</option><option value="case">Case ID</option>
+        </select></label>
+        <label className="sort-control system-select"><span>System</span><select aria-label="Filter by system" value={systemFilter} onChange={(event) => onSystemFilter(event.target.value)}>
+          <option value="ALL">All systems</option>{systems.map((systemId) => <option value={systemId} key={systemId}>{systemId}</option>)}
         </select></label>
         <button className="secondary-button export-register" disabled={!sortedCases.length} onClick={exportRegister}><ArrowDownToLine size={13} />Export view</button>
       </div>
@@ -1021,6 +1148,11 @@ function CaseWorkspace({
   onReveal,
   onOpenEvidence,
   onRetry,
+  onExportReport,
+  exportingReport,
+  completedFollowups,
+  onToggleFollowup,
+  onResetFollowups,
 }: {
   detail: CaseDetail | null
   loading: boolean
@@ -1028,6 +1160,11 @@ function CaseWorkspace({
   onReveal: () => void
   onOpenEvidence: (evidenceId: string) => void
   onRetry: () => void
+  onExportReport: () => void
+  exportingReport: boolean
+  completedFollowups: number[]
+  onToggleFollowup: (stepNo: number) => void
+  onResetFollowups: () => void
 }) {
   if (loading && !detail) return <div className="case-loading panel" role="status"><LoaderCircle className="spin" size={18} />Loading case evidence…</div>
   if (!detail) return <div className="panel case-load-error" role="alert"><AlertTriangle size={18} /><div><strong>Case details are unavailable</strong><p>Try loading the case again.</p><button className="secondary-button" onClick={onRetry}>Retry</button></div></div>
@@ -1035,10 +1172,14 @@ function CaseWorkspace({
   const request = detail.request
   const findingCount = detail.steps.filter((step) => step.phase === 'FINDING').length
   const verificationCount = detail.steps.filter((step) => step.phase === 'VERIFICATION').length
+  const followupSteps = detail.steps.filter((step) =>
+    step.phase === 'REMEDIATION' || (step.phase === 'VERIFICATION' && !step.evidence_id),
+  )
+  const completedCount = followupSteps.filter((step) => completedFollowups.includes(step.step_no)).length
 
   return <>
     <button className="back-link" onClick={onBack}><ArrowLeft size={14} aria-hidden="true" /> Back to case register</button>
-    <div className="case-title-row"><div><div className="eyebrow">CASE REVIEW <span className="eyebrow-dot">·</span> AUDITED AT {formatUtc(request.audit_at)}</div><h1>{detail.case_id}</h1></div><StatusChip status={detail.deletion_status} /></div>
+    <div className="case-title-row"><div><div className="eyebrow">CASE REVIEW <span className="eyebrow-dot">·</span> AUDITED AT {formatUtc(request.audit_at)}</div><h1>{detail.case_id}</h1></div><div className="case-title-actions"><button className="secondary-button report-download" onClick={onExportReport} disabled={exportingReport}>{exportingReport ? <LoaderCircle className="spin" size={14} /> : <ArrowDownToLine size={14} />} {exportingReport ? 'Preparing report' : 'Export masked report'}</button><StatusChip status={detail.deletion_status} /></div></div>
     <div className="case-meta-grid">
       <MetaItem label="Requested" value={formatUtc(request.requested_at)} />
       <MetaItem label="Previous workflow claim" value={titleCase(request.reported_status)} />
@@ -1070,6 +1211,14 @@ function CaseWorkspace({
       </div>
       <aside className="review-aside" aria-label="Case summary">
         <section className="panel verdict-panel"><span className="field-label">AUDIT VERDICT</span><StatusChip status={detail.deletion_status} /><p>{STATUS[detail.deletion_status].explanation}</p><div className="verdict-facts"><span><AlertTriangle size={13} />{findingCount} findings</span><span><CheckCircle2 size={13} />{verificationCount} verification checks</span></div></section>
+        {followupSteps.length > 0 && <section className="panel followup-panel" aria-labelledby="followup-heading">
+          <div className="panel-head"><div><ClipboardCheck size={15} aria-hidden="true" /><h2 id="followup-heading">Operations checklist</h2></div><span className="followup-progress">{completedCount}/{followupSteps.length}</span></div>
+          <p>Track proposed work in this browser. These checkmarks are self-attested; they do not change the verdict or source records.</p>
+          <ul className="followup-list">{followupSteps.map((step) => <li key={`followup-${step.step_no}`}>
+            <label><input type="checkbox" checked={completedFollowups.includes(step.step_no)} onChange={() => onToggleFollowup(step.step_no)} /><span><b>{OPERATION_LABELS[step.operation] || titleCase(step.operation)}</b><small>{step.system_id} / {step.resource_id}</small></span></label>
+          </li>)}</ul>
+          <div className="followup-footer"><span>{completedCount === followupSteps.length ? 'All listed tasks marked done' : 'Progress is saved on this browser'}</span><button className="text-button" onClick={onResetFollowups} disabled={completedCount === 0}>Reset</button></div>
+        </section>}
         <section className="panel note-panel"><div className="panel-head"><div><CalendarClock size={15} aria-hidden="true" /><h2>Cutoff rule</h2></div></div><p>Only evidence available at or before this case’s cutoff can support its verdict. Activity results and reported workflow statuses remain claims.</p><p className="small-note">The steps describe proposed remediation. They do not change source systems.</p></section>
         {detail.warnings.length > 0 && <section className="panel note-panel"><div className="panel-head"><div><AlertTriangle size={15} /><h2>Review notes</h2></div></div><ul className="case-warnings">{detail.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></section>}
       </aside>

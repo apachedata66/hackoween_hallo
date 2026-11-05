@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import SkipTest, TestCase
@@ -56,3 +57,22 @@ class DatasetHealthTests(TestCase):
 
         self.assertFalse(result["ready"])
         self.assertFalse(result["files"]["sample_deletion_requests.csv"])
+
+
+class CaseSummaryRiskTests(TestCase):
+    def test_finding_systems_include_only_evidence_backed_findings(self) -> None:
+        run = api.AuditRun("summary-test", "full", Path("requests.csv"))
+        run.requests = {"case_01": {"case_id": "case_01", "email": "person@example.test"}}
+        steps = [
+            {"phase": "FINDING", "system_id": "support_platform", "operation": "REPORT_REMAINING_RECORD"},
+            {"phase": "FINDING", "system_id": "primary_store", "operation": "REPORT_RESTORE_RISK"},
+            {"phase": "REMEDIATION", "system_id": "billing", "operation": "DELETE_RECORD"},
+        ]
+
+        summary = api._case_summary(run, {
+            "case_id": "case_01",
+            "deletion_status": "INCOMPLETE",
+            "steps_json": json.dumps(steps),
+        })
+
+        self.assertEqual(summary["finding_systems"], ["primary_store", "support_platform"])
