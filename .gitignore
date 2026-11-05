@@ -22,6 +22,7 @@ ui/.vite/
 .ui-smoke-deps/
 .ui-smoke-server.*
 .api-deps/
+.api-server*.log
 .ui-server*.log
 
 # Archives (never commit nested zips)
