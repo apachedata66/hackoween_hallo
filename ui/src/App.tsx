@@ -37,7 +37,7 @@ type IconComponent = ComponentType<SVGProps<SVGSVGElement> & { size?: number | s
 type DeletionStatus = 'COMPLETE' | 'INCOMPLETE' | 'NOT_APPLICABLE'
 type RunState = 'queued' | 'running' | 'complete' | 'failed' | 'review_required'
 type FilterStatus = 'ALL' | DeletionStatus
-type WorkspacePage = 'overview' | 'cases' | 'evidence' | 'systems' | 'queue'
+type WorkspacePage = 'overview' | 'cases'
 
 type Health = {
   ready: boolean
@@ -79,8 +79,6 @@ type CaseSummary = {
   email_masked: string
   finding_systems: string[]
   evidence_refs: AuditStep[]
-  finding_steps: AuditStep[]
-  remediation_steps: AuditStep[]
 }
 
 type AuditStep = {
@@ -231,16 +229,10 @@ function StatusChip({ status }: { status: DeletionStatus }) {
 const WORKSPACE_PAGES: { id: WorkspacePage; label: string; Icon: IconComponent }[] = [
   { id: 'overview', label: 'Overview', Icon: Activity },
   { id: 'cases', label: 'Case register', Icon: FileText },
-  { id: 'evidence', label: 'Evidence index', Icon: BookOpen },
-  { id: 'systems', label: 'System risks', Icon: Network },
-  { id: 'queue', label: 'Remediation queue', Icon: ClipboardCheck },
 ]
 const PAGE_DESCRIPTIONS: Record<WorkspacePage, string> = {
   overview: 'Run an audit, watch its progress, and review the validated outcome.',
   cases: 'Search, filter, prioritize, and export individual audit cases.',
-  evidence: 'Trace every cited source back to the case, system, resource, and audit cutoff it supports.',
-  systems: 'Find systems with repeated deletion findings, active data flows, and restore exposure.',
-  queue: 'Track proposed remediation and verification work across incomplete cases.',
 }
 
 function App() {
@@ -452,25 +444,11 @@ function App() {
     () => [...new Set(cases.flatMap((item) => item.finding_systems))].sort((a, b) => a.localeCompare(b)),
     [cases],
   )
-  const uniqueEvidenceCount = useMemo(
-    () => new Set(cases.flatMap((item) => (item.evidence_refs ?? []).map((step) => step.evidence_id))).size,
-    [cases],
-  )
-  const followupTasks = useMemo(
-    () => cases.flatMap((item) => (item.remediation_steps ?? []).map((step) => ({
-      caseId: item.case_id,
-      step,
-      checked: (followupChecks[item.case_id] ?? []).includes(step.step_no),
-    }))),
-    [cases, followupChecks],
-  )
-  const openFollowupCount = followupTasks.filter((task) => !task.checked).length
-
-  async function startRun(mode: 'full' | 'samples' | 'saved', destination: WorkspacePage = 'overview') {
+  async function startRun(mode: 'full' | 'samples' | 'saved') {
     if (activeRun || starting) return
     setStarting(true)
     navigate('workspace')
-    setWorkspaceView(destination)
+    setWorkspaceView('overview')
     setRunError('')
     setCases([])
     setSearchCases(null)
@@ -588,13 +566,6 @@ function App() {
     }
   }
 
-  function openEvidenceFromIndex(caseId: string, evidenceId: string) {
-    setCaseDetail(null)
-    setSelectedCaseId(caseId)
-    setSelectedEvidenceId(evidenceId)
-    setMenuOpen(false)
-  }
-
   function focusSystemInCases(systemId: string) {
     setFilter('INCOMPLETE')
     setSystemFilter(systemId)
@@ -648,13 +619,7 @@ function App() {
         <nav className="workspace-nav" aria-label="Audit work areas">
           {WORKSPACE_PAGES.map(({ id, label, Icon }) => {
             const active = selectedCaseId ? id === 'cases' : workspaceView === id
-            const badge = id === 'evidence'
-              ? uniqueEvidenceCount
-              : id === 'queue'
-                ? openFollowupCount
-                : id === 'cases'
-                  ? cases.length
-                  : null
+            const badge = id === 'cases' ? cases.length : null
             return <button key={id} className={`nav-item${active ? ' active' : ''}`} aria-current={active ? 'page' : undefined} onClick={() => goToPage(id)}>
               <Icon size={16} aria-hidden="true" /><span>{label}</span>{badge !== null && <small className="nav-badge">{badge || '—'}</small>}
             </button>
@@ -696,7 +661,7 @@ function App() {
               detail={caseDetail}
               loading={caseLoading}
               onBack={returnToCases}
-              backLabel={workspaceView === 'evidence' ? 'Back to evidence index' : workspaceView === 'systems' ? 'Back to system risks' : workspaceView === 'queue' ? 'Back to remediation queue' : workspaceView === 'overview' ? 'Back to overview' : 'Back to case register'}
+              backLabel={workspaceView === 'overview' ? 'Back to overview' : 'Back to case register'}
               onReveal={revealIdentifiers}
               onOpenEvidence={setSelectedEvidenceId}
               onRetry={() => setCaseReload((value) => value + 1)}
@@ -726,8 +691,6 @@ function App() {
               {healthError && <div className="run-error" role="alert"><AlertTriangle size={16} />{healthError}</div>}
               {health && !health.ready && <div className="run-error" role="alert"><AlertTriangle size={16} />The participant dataset is incomplete. Check the required files under dataset/ before starting a run.</div>}
 
-              {workspaceView !== 'overview' && (activeRun || starting) && <RunProgress run={run} loadingCases={casesLoading} />}
-
               {workspaceView === 'overview' && <>
                 <section className="panel run-card" aria-labelledby="run-title">
                   <div className="run-card-icon"><ShieldCheck size={20} aria-hidden="true" /></div>
@@ -744,7 +707,6 @@ function App() {
                         {starting ? <LoaderCircle className="spin" size={15} /> : <Activity size={15} />}
                         {activeRun ? 'Audit running' : 'Audit all requests'}
                       </button>
-                      <button className="secondary-button" disabled={!health?.ready || activeRun || starting} onClick={() => startRun('samples')}>Run public sample</button>
                       <button className="secondary-button" disabled={!health?.ready || activeRun || starting} onClick={() => startRun('saved')}>Open validated output</button>
                     </div>
                     {runError && <div className="inline-warning" role="alert"><AlertTriangle size={14} />{runError}</div>}
@@ -752,7 +714,11 @@ function App() {
                 </section>
 
                 <RunProgress run={run} loadingCases={casesLoading} />
-                {run?.state === 'complete' && <RunSummary run={run} onDownload={() => window.location.assign(apiPath(`/api/runs/${run.run_id}/output`))} />}
+                {run?.state === 'complete' && <RunSummary
+                  run={run}
+                  onDownload={() => window.location.assign(apiPath(`/api/runs/${run.run_id}/output`))}
+                  onOpenCases={() => goToPage('cases')}
+                />}
               </>}
 
               {currentPage === 'overview' && <DashboardInsights
@@ -764,7 +730,7 @@ function App() {
                 onOpenCase={openCase}
               />}
 
-              {run?.state === 'review_required' && <div className="panel review-required-panel">
+              {workspaceView === 'overview' && run?.state === 'review_required' && <div className="panel review-required-panel">
                 <div className="review-required-heading"><AlertTriangle size={17} /><strong>Evidence review needed</strong></div>
                 <p>The audit withheld the result because at least one case could not be supported with cutoff-eligible resource evidence. Review the listed cases and source files before using an output.</p>
                 {run.warnings.length > 0 && <details className="warning-details" open>
@@ -773,7 +739,7 @@ function App() {
                 </details>}
               </div>}
 
-              {run?.state === 'failed' && run.error && <div className="run-error" role="alert"><AlertTriangle size={16} />{run.error}</div>}
+              {workspaceView === 'overview' && run?.state === 'failed' && run.error && <div className="run-error" role="alert"><AlertTriangle size={16} />{run.error}</div>}
 
               {workspaceView === 'cases' && run?.state === 'complete' && <CaseRegister
                 cases={visibleCases}
@@ -789,16 +755,12 @@ function App() {
                 onSubmit={handleSearchSubmit}
                 onOpenCase={openCase}
               />}
-              {workspaceView === 'evidence' && run?.state === 'complete' && <EvidenceIndex cases={cases} onOpenEvidence={openEvidenceFromIndex} />}
-              {workspaceView === 'systems' && run?.state === 'complete' && <SystemRiskCenter cases={cases} onOpenCase={openCase} onOpenSystemInRegister={focusSystemInCases} />}
-              {workspaceView === 'queue' && run?.state === 'complete' && <RemediationQueue cases={cases} followupChecks={followupChecks} onToggle={toggleFollowup} onOpenCase={openCase} />}
-              {workspaceView !== 'overview' && run?.state !== 'complete' && <WorkspaceEmptyState
-                page={workspaceView}
-                runState={run?.state ?? null}
-                ready={Boolean(health?.ready)}
-                busy={Boolean(activeRun || starting)}
-                onRunSample={() => void startRun('samples', workspaceView)}
-                onOpenSaved={() => void startRun('saved', workspaceView)}
+              {workspaceView === 'cases' && (run?.state !== 'complete' || casesLoading || cases.length === 0) && <CaseRegisterGate
+                run={run}
+                loadingCases={casesLoading}
+                starting={starting}
+                runError={runError}
+                onOpenOverview={() => goToPage('overview')}
               />}
             </>
           )}
@@ -984,9 +946,9 @@ function RunProgress({ run, loadingCases }: { run: AuditRun | null; loadingCases
   )
 }
 
-function RunSummary({ run, onDownload }: { run: AuditRun; onDownload: () => void }) {
+function RunSummary({ run, onDownload, onOpenCases }: { run: AuditRun; onDownload: () => void; onOpenCases: () => void }) {
   return <section className="run-summary panel" aria-label="Validated run summary">
-    <div className="run-summary-heading"><div><span className="eyebrow">VALIDATED OUTPUT</span><h2>Audit results are ready</h2></div><button className="primary-button download-button" onClick={onDownload}><ArrowDownToLine size={15} aria-hidden="true" /> Download CSV</button></div>
+    <div className="run-summary-heading"><div><span className="eyebrow">VALIDATED OUTPUT</span><h2>Audit results are ready</h2></div><div className="run-summary-actions"><button className="secondary-button" onClick={onOpenCases}><FileText size={14} aria-hidden="true" />Review cases</button><button className="primary-button download-button" onClick={onDownload}><ArrowDownToLine size={15} aria-hidden="true" />Download CSV</button></div></div>
     <div className="run-totals">
       {(['COMPLETE', 'INCOMPLETE', 'NOT_APPLICABLE'] as DeletionStatus[]).map((status) => <span key={status}><StatusChip status={status} /><b>{run.counts?.[status] ?? 0}</b></span>)}
     </div>
@@ -1100,227 +1062,62 @@ function DashboardInsights({
   </section>
 }
 
-function WorkspaceEmptyState({
-  page,
-  runState,
-  ready,
-  busy,
-  onRunSample,
-  onOpenSaved,
-}: {
-  page: WorkspacePage
-  runState: RunState | null
-  ready: boolean
-  busy: boolean
-  onRunSample: () => void
-  onOpenSaved: () => void
+function CaseRegisterGate({ run, loadingCases, starting, runError, onOpenOverview }: {
+  run: AuditRun | null
+  loadingCases: boolean
+  starting: boolean
+  runError: string
+  onOpenOverview: () => void
 }) {
-  const messages: Record<Exclude<WorkspacePage, 'overview'>, { title: string; detail: string }> = {
-    cases: { title: 'Your case register will appear here', detail: 'After a run passes validation, search by case or masked email, filter by verdict and system, then open a case to inspect its evidence-backed plan.' },
-    evidence: { title: 'Evidence index is waiting for a validated run', detail: 'This index will list cited source IDs, the cases and resources they support, and let you open each source at the relevant audit cutoff.' },
-    systems: { title: 'System risk map needs audit findings', detail: 'Once a run is validated, compare systems by affected cases, data-flow findings, and restore risks, then open the cases behind each count.' },
-    queue: { title: 'Remediation queue is ready for audit results', detail: 'Validated incomplete cases will contribute ordered remediation and future verification tasks. Your checkmarks are saved locally and remain self-attested.' },
-  }
-  if (page === 'overview') return null
-  const message = messages[page]
-  const reviewRequired = runState === 'review_required'
-  const running = runState === 'queued' || runState === 'running' || busy
-  return <section className="section-empty panel" role="status">
-    <div className="section-empty-mark"><FileText size={19} aria-hidden="true" /></div>
+  const active = run?.state === 'queued' || run?.state === 'running'
+  const diagnostics = [...(run?.warnings ?? []), ...(run?.validation_issues ?? [])]
+  const title = loadingCases
+    ? 'Loading validated cases'
+    : starting
+      ? 'Starting audit'
+      : active
+        ? 'Audit is still running'
+        : run?.state === 'review_required'
+          ? 'The audit stopped for evidence review'
+          : run?.state === 'failed'
+            ? 'The audit did not produce validated output'
+            : run?.state === 'complete'
+              ? 'Validated cases could not be loaded'
+              : 'No validated run yet'
+  const detail = loadingCases
+    ? 'The output passed validation. Case records are being loaded.'
+    : starting
+      ? 'The audit is starting. Its stage and progress are shown on Overview.'
+      : active
+        ? `${run?.processed.toLocaleString() ?? 0} of ${run?.total.toLocaleString() ?? 0} requests processed. View the live stage on Overview.`
+        : run?.state === 'review_required'
+          ? 'The engine withheld the output because one or more findings could not be supported safely. The messages below show what needs review.'
+          : run?.state === 'failed'
+            ? 'No case rows are available because the run failed before producing a validated output.'
+            : run?.state === 'complete'
+              ? 'The run says it completed, but the case list is empty. Check the loading error and retry from Overview.'
+              : 'Run a public sample or load saved validated output from Overview. Case-level evidence and the operations checklist appear here after validation.'
+  const error = runError || run?.error || ''
+
+  return <section className="case-register-gate panel" role={run?.state === 'failed' || run?.state === 'review_required' || runError ? 'alert' : 'status'}>
+    <div className="section-empty-mark">{active || loadingCases || starting ? <LoaderCircle className="spin" size={19} aria-hidden="true" /> : <FileText size={19} aria-hidden="true" />}</div>
     <div className="section-empty-copy">
-      <span className="eyebrow">{WORKSPACE_PAGES.find((item) => item.id === page)?.label.toUpperCase()}</span>
-      <h2>{running ? 'Audit in progress' : reviewRequired ? 'This run needs evidence review' : message.title}</h2>
-      <p>{running ? 'This work area will populate after the run validates. Follow progress from Overview.' : reviewRequired ? 'The current run did not pass evidence validation. Review the listed warnings from Overview, or open the last saved validated output.' : message.detail}</p>
-      <div className="section-empty-actions">
-        <button className="primary-button" disabled={!ready || busy} onClick={onRunSample}><Activity size={14} aria-hidden="true" />{running ? 'Audit running' : 'Run public sample'}</button>
-        <button className="secondary-button" disabled={!ready || busy} onClick={onOpenSaved}><FileText size={14} aria-hidden="true" />Open validated output</button>
-      </div>
+      <span className="eyebrow">CASE REGISTER</span>
+      <h2>{title}</h2>
+      <p>{detail}</p>
+      {error && <p className="gate-error">{error}</p>}
+      {diagnostics.length > 0 && <details className="warning-details gate-diagnostics" open>
+        <summary><AlertTriangle size={13} aria-hidden="true" />{diagnostics.length} run messages</summary>
+        <ul>{diagnostics.map((message, index) => <li key={`${message}-${index}`}>{message}</li>)}</ul>
+      </details>}
+      <div className="section-empty-actions"><button className="primary-button" onClick={onOpenOverview}><Activity size={14} aria-hidden="true" />Open Overview</button></div>
     </div>
-  </section>
-}
-
-type EvidenceIndexRow = {
-  evidenceId: string
-  caseId: string
-  status: DeletionStatus
-  auditAt: string
-  systems: string[]
-  resources: string[]
-  operations: string[]
-}
-
-function EvidenceIndex({ cases, onOpenEvidence }: { cases: CaseSummary[]; onOpenEvidence: (caseId: string, evidenceId: string) => void }) {
-  const [query, setQuery] = useState('')
-  const [status, setStatus] = useState<'ALL' | DeletionStatus>('ALL')
-  const rows = useMemo(() => {
-    const grouped = new Map<string, EvidenceIndexRow>()
-    for (const item of cases) {
-      for (const step of item.evidence_refs ?? []) {
-        const key = `${step.evidence_id}\u0000${item.case_id}`
-        const row = grouped.get(key) ?? {
-          evidenceId: step.evidence_id,
-          caseId: item.case_id,
-          status: item.deletion_status,
-          auditAt: item.audit_at,
-          systems: [],
-          resources: [],
-          operations: [],
-        }
-        if (!row.systems.includes(step.system_id)) row.systems.push(step.system_id)
-        if (!row.resources.includes(step.resource_id)) row.resources.push(step.resource_id)
-        const operation = OPERATION_LABELS[step.operation] || titleCase(step.operation)
-        if (!row.operations.includes(operation)) row.operations.push(operation)
-        grouped.set(key, row)
-      }
-    }
-    return [...grouped.values()].sort((a, b) => a.evidenceId.localeCompare(b.evidenceId) || a.caseId.localeCompare(b.caseId))
-  }, [cases])
-  const uniqueSources = new Set(rows.map((row) => row.evidenceId)).size
-  const linkedCases = new Set(rows.map((row) => row.caseId)).size
-  const filtered = rows.filter((row) => {
-    if (status !== 'ALL' && row.status !== status) return false
-    const haystack = [row.evidenceId, row.caseId, ...row.systems, ...row.resources, ...row.operations].join(' ').toLowerCase()
-    return !query.trim() || haystack.includes(query.trim().toLowerCase())
-  })
-
-  return <section className="work-area" aria-labelledby="evidence-index-title">
-    <div className="work-area-heading"><div><div className="eyebrow">CITED SOURCE CATALOG</div><h2 id="evidence-index-title">Evidence used in this run</h2><p>Open a citation to inspect its source excerpt and cutoff eligibility in the case that relies on it.</p></div><span className="mono work-total">{filtered.length.toLocaleString()} citations</span></div>
-    <div className="work-metrics">
-      <MetricCard label="Unique source IDs" value={uniqueSources.toLocaleString()} detail="Distinct participant-facing citations" />
-      <MetricCard label="Case links" value={rows.length.toLocaleString()} detail={`${linkedCases.toLocaleString()} cases reference evidence`} />
-      <MetricCard label="Incomplete cases" value={cases.filter((item) => item.deletion_status === 'INCOMPLETE' && item.evidence_refs?.length).length.toLocaleString()} detail="With at least one cited finding" />
-    </div>
-    <div className="panel work-table-panel">
-      <div className="work-toolbar">
-        <label className="searchbox"><Search size={14} aria-hidden="true" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find evidence, case, system, or resource" aria-label="Search evidence index" />{query && <button className="clear-search" aria-label="Clear evidence search" onClick={() => setQuery('')}><X size={13} /></button>}</label>
-        <label className="sort-control"><span>Case verdict</span><select aria-label="Filter evidence by case verdict" value={status} onChange={(event) => setStatus(event.target.value as typeof status)}><option value="ALL">All verdicts</option><option value="INCOMPLETE">Incomplete</option><option value="COMPLETE">Complete</option><option value="NOT_APPLICABLE">Not applicable</option></select></label>
-      </div>
-      <div className="table-wrap work-table-wrap"><table className="work-table"><thead><tr><th>Evidence ID</th><th>Case / verdict</th><th>System / resource</th><th>Supports</th><th>Cutoff (UTC)</th><th></th></tr></thead><tbody>
-        {filtered.map((row) => <tr key={`${row.evidenceId}-${row.caseId}`}>
-          <td><b className="mono">{row.evidenceId}</b></td>
-          <td><button className="inline-case-link" onClick={() => onOpenEvidence(row.caseId, row.evidenceId)}>{row.caseId}<ChevronRight size={12} aria-hidden="true" /></button><StatusChip status={row.status} /></td>
-          <td><span className="mono">{row.systems.join(', ')}</span><small className="table-subline mono">{row.resources.join(', ')}</small></td>
-          <td>{row.operations.join(', ')}</td>
-          <td>{formatUtc(row.auditAt)}</td>
-          <td><button className="secondary-button inspect-source" onClick={() => onOpenEvidence(row.caseId, row.evidenceId)}><Eye size={13} aria-hidden="true" />Inspect</button></td>
-        </tr>)}
-        {!filtered.length && <tr><td className="table-empty" colSpan={6}>{rows.length ? 'No citations match these filters.' : 'This validated output contains no evidence citations.'}</td></tr>}
-      </tbody></table></div>
-    </div>
-    <p className="work-disclaimer"><LockKeyhole size={13} aria-hidden="true" />Source content stays in the evidence drawer. Each excerpt is masked and checked against the selected case’s cutoff.</p>
   </section>
 }
 
 function MetricCard({ label, value, detail }: { label: string; value: string; detail: string }) {
   return <div className="panel work-metric"><span>{label}</span><b>{value}</b><small>{detail}</small></div>
 }
-
-type SystemRisk = {
-  systemId: string
-  findings: number
-  flowRisks: number
-  restoreRisks: number
-  cases: Map<string, CaseSummary>
-}
-
-function SystemRiskCenter({ cases, onOpenCase, onOpenSystemInRegister }: { cases: CaseSummary[]; onOpenCase: (caseId: string) => void; onOpenSystemInRegister: (systemId: string) => void }) {
-  const [selectedSystem, setSelectedSystem] = useState('')
-  const [query, setQuery] = useState('')
-  const systems = useMemo(() => {
-    const grouped = new Map<string, SystemRisk>()
-    for (const item of cases) {
-      if (item.deletion_status !== 'INCOMPLETE') continue
-      for (const step of item.finding_steps ?? []) {
-        const risk = grouped.get(step.system_id) ?? { systemId: step.system_id, findings: 0, flowRisks: 0, restoreRisks: 0, cases: new Map<string, CaseSummary>() }
-        risk.findings += 1
-        if (step.operation === 'REPORT_ACTIVE_DATA_FLOW') risk.flowRisks += 1
-        if (step.operation === 'REPORT_RESTORE_RISK') risk.restoreRisks += 1
-        risk.cases.set(item.case_id, item)
-        grouped.set(step.system_id, risk)
-      }
-    }
-    return [...grouped.values()].sort((a, b) => (b.flowRisks + b.restoreRisks) - (a.flowRisks + a.restoreRisks) || b.cases.size - a.cases.size || a.systemId.localeCompare(b.systemId))
-  }, [cases])
-  const totalFlows = systems.reduce((sum, item) => sum + item.flowRisks, 0)
-  const totalRestores = systems.reduce((sum, item) => sum + item.restoreRisks, 0)
-  const affectedCases = new Set(systems.flatMap((item) => [...item.cases.keys()])).size
-  const selected = systems.find((item) => item.systemId === selectedSystem) ?? null
-  const visibleCases = [...(selected ? selected.cases.values() : new Map(systems.flatMap((item) => [...item.cases.entries()])).values())]
-    .filter((item) => !query.trim() || item.case_id.toLowerCase().includes(query.trim().toLowerCase()))
-    .sort((a, b) => b.recreation_count - a.recreation_count || b.finding_count - a.finding_count || a.case_id.localeCompare(b.case_id))
-
-  return <section className="work-area" aria-labelledby="system-risk-title">
-    <div className="work-area-heading"><div><div className="eyebrow">REPEATED FINDINGS & RECREATION PATHS</div><h2 id="system-risk-title">Where deletion breaks down</h2><p>Ranked from incomplete cases using evidence-backed findings. Select a system to see the cases and filter the register.</p></div><span className="mono work-total">{systems.length} systems</span></div>
-    <div className="work-metrics">
-      <MetricCard label="Affected systems" value={systems.length.toLocaleString()} detail="With findings in incomplete cases" />
-      <MetricCard label="Active data flows" value={totalFlows.toLocaleString()} detail="Copy or synchronization paths" />
-      <MetricCard label="Restore risks" value={totalRestores.toLocaleString()} detail="Backup or restore findings" />
-      <MetricCard label="Affected cases" value={affectedCases.toLocaleString()} detail="Cases connected to these systems" />
-    </div>
-    <div className="system-risk-layout">
-      <div className="panel system-risk-panel"><div className="panel-head"><div><Network size={15} aria-hidden="true" /><h2>Systems needing attention</h2></div><span className="subtle">Sorted by flow and restore risk</span></div>
-        <div className="system-risk-list">{systems.map((item) => <button key={item.systemId} className={`system-risk-item${selectedSystem === item.systemId ? ' selected' : ''}`} aria-pressed={selectedSystem === item.systemId} onClick={() => setSelectedSystem(selectedSystem === item.systemId ? '' : item.systemId)}>
-          <span className="mono system-risk-name">{item.systemId}</span><span className="system-risk-count"><b>{item.cases.size}</b><small>cases</small></span><span className="system-risk-count"><b>{item.findings}</b><small>findings</small></span><span className="system-risk-alerts">{item.flowRisks > 0 && <span><Network size={12} />{item.flowRisks} flows</span>}{item.restoreRisks > 0 && <span><AlertTriangle size={12} />{item.restoreRisks} restores</span>}{item.flowRisks + item.restoreRisks === 0 && <span>No recreation path flagged</span>}</span><ChevronRight size={14} aria-hidden="true" />
-        </button>)}{!systems.length && <div className="queue-empty"><CheckCircle2 size={16} />No incomplete system findings in this run.</div>}</div>
-      </div>
-      <div className="panel system-case-panel"><div className="panel-head"><div><FileText size={15} aria-hidden="true" /><h2>{selected ? selected.systemId : 'Cases across all systems'}</h2></div><span className="subtle">{visibleCases.length} cases</span></div>
-        <label className="searchbox system-case-search"><Search size={14} aria-hidden="true" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search case ID" aria-label="Search risk cases" /></label>
-        <div className="system-case-list">{visibleCases.slice(0, 30).map((item) => <button key={item.case_id} className="system-case-row" onClick={() => onOpenCase(item.case_id)}><span><b className="mono">{item.case_id}</b><small>{selected ? `${item.finding_steps.filter((step) => step.system_id === selected.systemId).length} findings in selected system` : `${item.finding_count} total findings`}</small></span><span className="priority-counts"><b>{item.recreation_count}</b> risks</span><ChevronRight size={13} aria-hidden="true" /></button>)}{!visibleCases.length && <div className="table-empty">No incomplete cases match this system and search.</div>}</div>
-        {selected && <button className="text-button system-register-link" onClick={() => onOpenSystemInRegister(selected.systemId)}>Open this system in Case register <ArrowRight size={13} aria-hidden="true" /></button>}
-      </div>
-    </div>
-  </section>
-}
-
-function RemediationQueue({ cases, followupChecks, onToggle, onOpenCase }: {
-  cases: CaseSummary[]
-  followupChecks: Record<string, number[]>
-  onToggle: (caseId: string, stepNo: number) => void
-  onOpenCase: (caseId: string) => void
-}) {
-  const [filter, setFilter] = useState<'OPEN' | 'DONE' | 'ALL'>('OPEN')
-  const [query, setQuery] = useState('')
-  const tasks = useMemo(() => cases
-    .filter((item) => item.deletion_status === 'INCOMPLETE')
-    .flatMap((item) => (item.remediation_steps ?? []).map((step) => ({
-      caseId: item.case_id,
-      recreationCount: item.recreation_count,
-      findingCount: item.finding_count,
-      step,
-      checked: (followupChecks[item.case_id] ?? []).includes(step.step_no),
-    })))
-    .sort((a, b) => Number(a.checked) - Number(b.checked) || b.recreationCount - a.recreationCount || a.caseId.localeCompare(b.caseId) || a.step.step_no - b.step.step_no),
-  [cases, followupChecks])
-  const done = tasks.filter((item) => item.checked).length
-  const openCases = new Set(tasks.filter((item) => !item.checked).map((item) => item.caseId)).size
-  const visible = tasks.filter((item) => {
-    if (filter === 'OPEN' && item.checked) return false
-    if (filter === 'DONE' && !item.checked) return false
-    const haystack = [item.caseId, item.step.system_id, item.step.resource_id, item.step.operation].join(' ').toLowerCase()
-    return !query.trim() || haystack.includes(query.trim().toLowerCase())
-  })
-
-  return <section className="work-area" aria-labelledby="remediation-queue-title">
-    <div className="work-area-heading"><div><div className="eyebrow">OPERATOR HANDOFF</div><h2 id="remediation-queue-title">Proposed work to track</h2><p>Tasks come from incomplete audit plans. Marking a task is a local, self-attested note; it never changes the audit verdict or source data.</p></div><span className="mono work-total">{visible.length} tasks shown</span></div>
-    <div className="work-metrics">
-      <MetricCard label="Open tasks" value={(tasks.length - done).toLocaleString()} detail="Proposed actions and future checks" />
-      <MetricCard label="Cases with open work" value={openCases.toLocaleString()} detail="Incomplete cases needing follow-up" />
-      <MetricCard label="Marked complete" value={`${done.toLocaleString()} / ${tasks.length.toLocaleString()}`} detail="Saved on this browser only" />
-    </div>
-    <div className="panel queue-panel">
-      <div className="queue-toolbar"><div className="queue-filters" role="group" aria-label="Filter remediation tasks">{(['OPEN', 'DONE', 'ALL'] as const).map((value) => <button key={value} className={filter === value ? 'filter-active' : ''} aria-pressed={filter === value} onClick={() => setFilter(value)}>{value === 'OPEN' ? 'Open' : value === 'DONE' ? 'Marked done' : 'All'}<span className="filter-count">{value === 'OPEN' ? tasks.length - done : value === 'DONE' ? done : tasks.length}</span></button>)}</div>
-        <label className="searchbox"><Search size={14} aria-hidden="true" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search case, system, or resource" aria-label="Search remediation tasks" />{query && <button className="clear-search" aria-label="Clear task search" onClick={() => setQuery('')}><X size={13} /></button>}</label>
-      </div>
-      <div className="queue-task-list">{visible.map((task) => <article key={`${task.caseId}-${task.step.step_no}`} className={`queue-task${task.checked ? ' is-done' : ''}`}>
-        <label className="queue-task-check"><input type="checkbox" checked={task.checked} onChange={() => onToggle(task.caseId, task.step.step_no)} aria-label={`${task.checked ? 'Unmark' : 'Mark'} step ${task.step.step_no} for ${task.caseId}`} /><span /></label>
-        <div className="queue-task-main"><div className="queue-task-title"><b>{OPERATION_LABELS[task.step.operation] || titleCase(task.step.operation)}</b><span className={`queue-task-state${task.checked ? ' done' : ''}`}>{task.checked ? 'Marked done' : task.step.phase}</span></div><div className="queue-task-resource"><span className="mono">{task.step.system_id}</span><span>/</span><span className="mono">{task.step.resource_id}</span></div><small className="queue-task-meta">Step {String(task.step.step_no).padStart(2, '0')} · {task.findingCount} findings · {task.recreationCount} recreation risks</small></div>
-        <button className="queue-case-link" onClick={() => onOpenCase(task.caseId)}><span className="mono">{task.caseId}</span><ChevronRight size={13} aria-hidden="true" /></button>
-      </article>)}{!visible.length && <div className="queue-empty"><CheckCircle2 size={16} />{tasks.length ? 'No tasks match these filters.' : 'No remediation tasks are present in this validated run.'}</div>}</div>
-    </div>
-    <p className="work-disclaimer"><LockKeyhole size={13} aria-hidden="true" />Checklist state is stored in this browser. It is not proof that an operation was executed.</p>
-  </section>
-}
-
 function CaseRegister({
   cases,
   allCases,

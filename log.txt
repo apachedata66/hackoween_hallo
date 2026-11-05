@@ -1899,3 +1899,44 @@ branch=codex/integration
 repo_root=C:\Users\Asus\Desktop\hallowen
 worktree=main
 parent_agent=none
+## [2026-11-05T14:29:07+05:30] Reduce workspace to two functional sections
+
+User Prompt (verbatim, secrets redacted):
+every tab run these same checks and also nothing comes after this no evedence no shit no aything what are u doing remove allthese tab just keep two tabs which are actually imp and and workable
+
+Agent Response Summary:
+Reduced workspace navigation to Overview and Case register. Evidence review and remediation remain available inside case details, while system hotspots remain on Overview. Added a case-register state gate that shows run failures and validation messages when no validated rows exist, and added a direct review-cases action after a successful run. The React production build passed; changes are being synced on the integration branch.
+
+Actions:
+* Fetched latest remote branches before editing and again before syncing.
+* Edited ui/src/App.tsx, ui/src/styles.css, and code/ghostdata/api/app.py.
+* Rebuilt ui/dist with npm run build; git diff --check reviewed.
+* Switched to codex/integration; kept unrelated tests/test_api_health.py and untracked files untouched.
+
+Context:
+tool=Codex desktop
+model=GPT-6
+branch=codex/integration
+repo_root=C:\Users\Asus\Desktop\hallowen
+worktree=main
+parent_agent=none
+## [2026-11-05T14:31:23+05:30] Remove public sample button from overview
+
+User Prompt (verbatim, secrets redacted):
+before commiting remove this button
+
+Agent Response Summary:
+Removed the secondary Run public sample action from the Overview audit controls, leaving Audit all requests and Open validated output there. The existing landing page sample action remains available. Rebuilt the React production bundle successfully; this change will be folded into the existing local integration commit before it is pushed.
+
+Actions:
+* Fetched latest remote branches before editing.
+* Edited ui/src/App.tsx and rebuilt ui/dist with npm run build.
+* Kept tests/test_api_health.py and unrelated untracked files untouched.
+
+Context:
+tool=Codex desktop
+model=GPT-6
+branch=codex/integration
+repo_root=C:\Users\Asus\Desktop\hallowen
+worktree=main
+parent_agent=none
