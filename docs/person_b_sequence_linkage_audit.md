@@ -104,10 +104,18 @@ an independent same-system file listing contains the alias by the cutoff.
 
 The later SQL snapshots `evidence_01` and `evidence_02` remain excluded for
 these earlier cutoffs. They are not needed to establish the screenshot states.
-The current machine has no Tesseract executable, so the new image records and
-flow state parser could not yet be exercised against the real screenshots.
-Install/configure local Tesseract, rerun the full dataset, review every result,
-and validate the exact 518-row file before submission. The checked-in
-`output.csv` is from the earlier 2026-11-04 run and predates the link-only
-safety fix; it is stale and must not be submitted. Full-set gold labels are
-unavailable, so full-set accuracy cannot be measured from supplied files.
+The full dataset run above used local Tesseract 5.5.3 and validated the 518-row
+output. The current Person B worktree no longer has Tesseract on `PATH`; its
+latest public benchmark therefore omits screenshot OCR and is not comparable to
+the OCR-enabled metrics. Full-set gold labels are unavailable, so full-set
+accuracy cannot be measured from supplied files.
+
+## Follow-up: trace identity ambiguity
+
+The log loader previously propagated the last value seen for a trace context
+field to every event sharing that trace ID. A reused trace ID or a batch trace
+with multiple subjects could therefore attach a resource event to the wrong
+identity. The loader now propagates a context field only when all observations
+of that field in the trace agree; explicit fields remain event-local. A
+synthetic regression covers conflicting subject emails. This does not change
+planner ordering, and the current no-OCR public benchmark metrics are unchanged.

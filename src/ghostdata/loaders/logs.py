@@ -208,12 +208,26 @@ def load_log_text(
     # Operational result/state fields must remain event-local: for example, a
     # cache lookup's result="miss" must not override rows="1" on a later read.
     trace_fields: dict[str, dict[str, str]] = {}
+    ambiguous_trace_fields: dict[str, set[str]] = {}
     for event in events:
         if event.trace_id:
             context = {
                 key: value for key, value in event.fields.items() if key in _TRACE_CONTEXT_FIELDS
             }
-            trace_fields.setdefault(event.trace_id, {}).update(context)
+            shared = trace_fields.setdefault(event.trace_id, {})
+            ambiguous = ambiguous_trace_fields.setdefault(event.trace_id, set())
+            for key, value in context.items():
+                if key in ambiguous:
+                    continue
+                previous = shared.get(key)
+                if previous is None:
+                    shared[key] = value
+                elif previous.casefold() != value.casefold():
+                    # A trace ID can cover a batch or be reused across subjects.
+                    # Do not let the last identity value silently attach every
+                    # resource event in that trace to one person.
+                    shared.pop(key, None)
+                    ambiguous.add(key)
     events = [
         replace(event, fields={**trace_fields.get(event.trace_id, {}), **event.fields})
         if event.trace_id

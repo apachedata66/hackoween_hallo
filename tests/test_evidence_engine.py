@@ -122,6 +122,26 @@ def test_log_trace_fields_are_shared_across_start_and_result_lines() -> None:
     assert parsed.events[1].fields["source"] == "legacy_contact_index"
 
 
+def test_log_trace_does_not_propagate_conflicting_identity_context() -> None:
+    parsed = load_log_text(
+        "\n".join(
+            [
+                "2026-01-02T03:04:05Z level=DEBUG service=account_service "
+                "trace_id=batch-1 event=lookup_started customer_email=one@example.com",
+                "2026-01-02T03:04:06Z level=DEBUG service=account_service "
+                "trace_id=batch-1 event=lookup_started customer_email=two@example.com",
+                "2026-01-02T03:04:07Z level=INFO service=account_service "
+                "trace_id=batch-1 event=lookup_completed resource_id=account_9 rows=1",
+            ]
+        ),
+        evidence_id="evidence_03",
+    )
+
+    assert parsed.events[0].fields["customer_email"] == "one@example.com"
+    assert parsed.events[1].fields["customer_email"] == "two@example.com"
+    assert "customer_email" not in parsed.events[2].fields
+
+
 def test_json_structured_log_extracts_system_and_flow_state() -> None:
     parsed = load_log_text(
         '2026-04-19T06:53:19Z {"severity":"WARN","logger":"integration_service",'
@@ -285,9 +305,7 @@ def test_identity_link_joins_independent_cutoff_file_alias_evidence() -> None:
         content_sha256="fixture-digest",
         method="tesseract_ocr",
         text=(
-            "Nimbus Object Storage\n"
-            "eu-west-1 / support-attachments\n"
-            "delivery_confirmation_19.pdf\n"
+            "Nimbus Object Storage\neu-west-1 / support-attachments\ndelivery_confirmation_19.pdf\n"
         ),
         confidence=0.65,
     )
